@@ -8,7 +8,6 @@ VCFTOOLS https://github.com/vcftools/vcftools
 
 bgzip https://github.com/samtools/htslib
 
-Linux cut awk 
 
 Usage:
 =
