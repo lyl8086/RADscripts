@@ -1,6 +1,6 @@
 #!/bin/bash
-## VCF filter V0.3
-##Usage: Vcf_filterV3.sh <gzvcf file> <coverage> <minDepth> <Fis> <out>
+## VCF filter
+##Usage: Vcf_filter.sh <gzvcf file> <coverage> <minDepth> <Fis> <maf> <out>
 f_vcf=$1
 cov=$2
 dep=$3
@@ -9,7 +9,7 @@ MAP=$5
 prefix=$6
 if [ $# -lt 3 ] || [ $1 = -h ];
 then 
-	echo "Usage: Vcf_filterV3.sh <gzvcf file> <coverage> <minDepth> <Fis> <mac> <out>"
+	echo "Usage: Vcf_filter.sh <gzvcf file> <coverage> <minDepth> <Fis> <maf> <out>"
 	exit 1
 fi
 if ( ! ls *.pop.txt) >/dev/null 2>&1;
@@ -87,7 +87,7 @@ done
 if [ -n "$Fis" ];
 then
 	echo "Filtering Fis..."
-	awk '$6+'$Fis'<0 {print $0}' *.het|cut -f1,2 >>black.2nd ##exclude abs(Fis) modified
+	awk '$6+'$Fis'<0 {print $0}' *.het|cut -f1,2 >>black.2nd ##exclude Fis lt -$Fis
 fi
 
 if [ -n "$MAP" ];
