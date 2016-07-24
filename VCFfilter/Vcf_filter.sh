@@ -67,7 +67,7 @@ function calc_maf()
 
 ## Fist filter
 echo "First filtering..."
-vcftools --gzvcf ${f_vcf} --max-missing 0.9 --minDP $dep --minQ 30 --minGQ 15 --min-alleles 2 --max-alleles 2 \
+vcftools --gzvcf ${f_vcf} --max-missing 0.9 --minDP $dep --minQ 30 --minGQ 20 --min-alleles 2 --max-alleles 2 \
 --recode --recode-INFO-all -c --out 1st.filter |bgzip -c >tmp.vcf.gz
 ##
 
