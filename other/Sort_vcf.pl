@@ -1,17 +1,17 @@
 #!/usr/bin/env perl
 
 
-##############		           Readme 			               ##############
+##############		           Readme 			   ##############
 #	                                                                        #
-#                                                                           #
+#                                                                               #
 #	  sort the order of individuals in vcf according to the popmap file     #
 #	  Usage: perl Sort_vcf.pl vcf popmap > outfile                          #
-#     popmap file: indv1	pop1                                            #
-#				   indv2	pop1                                            #
-#				   indv3	pop2                                            #
+#         popmap file: indv1	pop1                                            #
+#		       indv2	pop1                                            #
+#		       indv3	pop2                                            #
 #	                                                                        #
-#     Author: Yulong Li <liyulong12@mails.ucas.ac.cn>                       #
-#############################################################################
+#         Author: Yulong Li <liyulong12@mails.ucas.ac.cn>                       #
+#################################################################################
 use strict;
 use warnings;
 die "Usage: perl Sort_vcf.pl [vcf file] [popmap file] > outfile\n" unless @ARGV == 2;
