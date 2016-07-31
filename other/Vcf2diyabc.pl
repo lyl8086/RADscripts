@@ -1,15 +1,15 @@
 #!/usr/bin/env perl
 
-##############		           Readme 			        ##############
+##############		           Readme 	            ##############
 #	                                                                 #
-#                                                                    #
+#                                                                        #
 #	  Convert vcf to DIYABC snp file                                 #
-#     assuming all the loci to be autosome with equal sex ratio      #
+#         assuming all the loci to be autosome with equal sex ratio      #
 #	  Usage: perl Vcf2diyabc.pl vcf > outfile                        #
-#                                                                    #
+#                                                                        #
 #	                                                                 #
-#     Author: Yulong Li <liyulong12@mails.ucas.ac.cn>                #
-######################################################################
+#         Author: Yulong Li <liyulong12@mails.ucas.ac.cn>                #
+##########################################################################
 use strict;
 use warnings;
 die "Usage: perl Vcf2diyabc.pl [vcf file] > outfile\n" unless @ARGV == 1;
