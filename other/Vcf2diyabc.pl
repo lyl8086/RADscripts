@@ -24,13 +24,13 @@ if (substr($vcf, -2) eq 'gz') {
 
 while (<$in_fh>) {
 	
-		next if /^##|^$/;
-		if (/^#/) {
-			@header = split;
-			next;
-		}
-		$cnt++;
-		push @parts, [ split ];
+	next if /^##|^$/;
+	if (/^#/) {
+		@header = split;
+		next;
+	}
+	$cnt++;
+	push @parts, [ split ];
 }
 
 close $in_fh;
