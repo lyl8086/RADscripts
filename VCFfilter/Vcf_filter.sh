@@ -161,7 +161,7 @@ vcftools --gzvcf tmp.vcf.gz --exclude-positions black.lst --recode -c --out cov.
 
 ####### Remove Ho gt 0.5
 echo "Filtering Ho..."
-if [ gflag==1 ];
+if [ -n "$gflag" ];
 then
 	#Calculating statistics on all individuals.
 	vcftools --gzvcf vcf.cov.gz --hardy  -c |cut -f1,2,3 |sed 's/\//\|/g' >all.het.tmp
