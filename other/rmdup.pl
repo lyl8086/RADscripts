@@ -33,12 +33,12 @@ while (<$seq_1>) {
 	my $id  = $_;
 	
 	my $seq  = <$seq_1>;	#seq
-			   <$seq_1>;	#identifier
+	           <$seq_1>;	#identifier
 	my $qual = <$seq_1>;	#quality
 					
-			   <$seq_2>;	#id
+	           <$seq_2>;	#id
 	  $seq  .= <$seq_2>;	#Combined seq
-			   <$seq_2>;	#identifier
+	           <$seq_2>;	#identifier
 	  $qual .= <$seq_2>;	#Combined quality
 	  
 	  $seqs{$seq}++;
