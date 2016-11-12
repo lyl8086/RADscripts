@@ -1,14 +1,14 @@
 #!/usr/bin/env perl
 
-##############		         Readme 			   ###############
-#	                                                             #
+##############               Readme                ###############
+#	                                                         #
 #                                                                #
-#	  Remove PCR duplications according the identical sequences. #
-#	  Usage: perl <fq file1> <fq file2> <if write results>       #
+#     Remove PCR duplications according the identical sequences. #
+#     Usage: perl <fq file1> <fq file2> <if write results>       #
 #                                                                #
 #     Note: Leave 3rd option to blank if you just want to obtain #
-#     the duplication rate.                                		 #
-#	                                                             #
+#     the duplication rate.                                      #
+#	                                                         #
 #     Author: Yulong Li <liyulong12@mails.ucas.ac.cn>            #
 ##################################################################
 
