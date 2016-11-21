@@ -1,16 +1,16 @@
 #!/usr/bin/env perl
 
-##############               Readme                ###############
-#	                                                         #
-#                                                                #
-#     Remove PCR duplications according the identical sequences. #
-#     Usage: perl <fq file1> <fq file2> <if write results>       #
-#                                                                #
-#     Note: Leave 3rd option to blank if you just want to obtain #
-#     the duplication rate.                                      #
-#	                                                         #
-#     Author: Yulong Li <liyulong12@mails.ucas.ac.cn>            #
-##################################################################
+##############               Readme                ##################
+#	                                                            #
+#                                                                   #
+#     Remove PCR duplications according to the identical sequences. #
+#     Usage: perl rmdup.pl <fq file1> <fq file2> <if write results> #
+#                                                                   #
+#     Note: Leave 3rd option to blank if you just want to obtain    #
+#     the duplication rate.                                         #
+#	                                                            #
+#     Author: Yulong Li <liyulong12@mails.ucas.ac.cn>               #
+#####################################################################
 
 use strict;
 use warnings;
@@ -30,21 +30,23 @@ open (my $seq_2, "$in_fh") or die "$!";
 
 while (<$seq_1>) {
 
-	my $id  = $_;
+	my $id    = $_;
 	
-	my $seq  = <$seq_1>;	#seq
-	           <$seq_1>;	#identifier
-	my $qual = <$seq_1>;	#quality
+	my $seq   = <$seq_1>; #seq
+	            <$seq_1>; #identifier
+	my $qual  = <$seq_1>; #quality
+	   $qual .= "\n" if ($qual !~ /\n$/); #In case of incomplete line end.
 					
-	           <$seq_2>;	#id
-	  $seq  .= <$seq_2>;	#Combined seq
-	           <$seq_2>;	#identifier
-	  $qual .= <$seq_2>;	#Combined quality
-	  
-	  $seqs{$seq}++;
-	  $ids{$seq}   = $id; #Retain only one id for the same paired reads.
-	  $quals{$seq} = $qual;#same as above.
-	  $reads++;
+	            <$seq_2>; #id
+	   $seq  .= <$seq_2>; #Combined seq
+	            <$seq_2>; #identifier
+	   $qual .= <$seq_2>; #Combined quality
+	   $qual .= "\n" if ($qual !~ /\n$/); #In case of incomplete line end.
+	   
+	   $seqs{$seq}++;
+	   $ids{$seq}   = $id; #Retain only one id for the same paired reads.
+	   $quals{$seq} = $qual; #same as above.
+	   $reads++;
 }
 close($seq_1);
 close($seq_2);
