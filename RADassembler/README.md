@@ -1,17 +1,17 @@
-PREREQUISITES
-=
-CAP3 available from http://seq.cs.iastate.edu/cap3.html
+#PREREQUISITES
+---
+* [CAP3](http://seq.cs.iastate.edu/cap3.html)
 
-VelvetOptimiser https://github.com/tseemann/VelvetOptimiser
+* [VelvetOptimiser](https://github.com/tseemann/VelvetOptimiser)
 
-Perl module "Parallel::ForkManager"
+* Perl module "Parallel::ForkManager"
 
-Linux split cut sed etc.
+* Linux split cut sed etc.
 
-Using "sort_read_pairs.pl" to export paired or single fasta file for each locus, see http://catchenlab.life.illinois.edu/stacks/pe_tut.php
+> Using "sort_read_pairs.pl" to export paired or single fasta file for each locus, [see](http://catchenlab.life.illinois.edu/stacks/pe_tut.php)
 
-Usage
-=
+#Usage
+---
  
 
 Notation：please stop previous processes of CAP3 before running this script, same for the latter shell scripts. You can use such cmd:
@@ -20,7 +20,7 @@ Notation：please stop previous processes of CAP3 before running this script, sa
 
 
 CP3_Opti.sh
-=
+---
 Optimised script for local assembly of paired reads for RAD, using two steps.
 	
 Options:
@@ -37,7 +37,7 @@ Options:
 	[threads] number of threads.
 	
 VelvetOpti.sh
-=	
+---	
 A script for local assembly of RAD paired reads using VelvetOptimiser for multi-files.
 	
 Options:
@@ -51,7 +51,7 @@ Options:
 	[threads] number of threads.
 
 CP3_Opti.pl
-=	
+---	
 Optimised script for local assembly of paired reads for RAD by CAP3, using two steps. Perl version, should be faster than the shell script. Please install the Perl module "Parallel::ForkManager".
 
 Options:
