@@ -9,7 +9,7 @@ my $bound_low  = 0.001;
 my $bound_high = 0.1;
 my $het_limit  = -3.84; #Set P = 0.05 
 my $hom_limit  = 3.84;
-my $stack	   = 2; #Minimum reads for a locus to be processed.
+my $stack      = 2; #Minimum reads for a locus to be processed.
 my $infile     = $ARGV[0];
 my $bam        = $ARGV[1];
 my $usage      = 'Usage: Call_snp.pl <pileup files> <Pop files>';
