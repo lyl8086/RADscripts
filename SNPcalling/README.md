@@ -1,2 +1,8 @@
 PREREQUISITES
 =====
+samtools
+perl
+
+
+Usage
+=====
