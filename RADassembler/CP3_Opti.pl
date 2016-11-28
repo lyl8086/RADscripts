@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-##	Author:Yulong Li <liyulong12@mails.ucas.ac.cn>.
+## Author:Yulong Li <liyulong12@mails.ucas.ac.cn>.
 use strict; 
 use warnings; 
 use Parallel::ForkManager;
@@ -11,7 +11,7 @@ my $in_path;
 my $out_path;
 my $loci;
 my $num_threads = 1;
-my $cmd = '';	##Parameters parsed to CAP3 for the fist assembly.
+my $cmd = '';	# Parameters parsed to CAP3 for the fist assembly.
 my $collect;
 my $help = 0;
 my $usage = 
@@ -27,19 +27,19 @@ my $usage =
 	-h help
 ';
 
-GetOptions ("par=s" 		=> \$cmd,
-			"in=s" 			=> \$in_path,
-			"out=s" 		=> \$out_path,
-			"loci=s" 		=> \$loci,
+GetOptions (		"par=s" 	=> \$cmd,
+			"in=s" 		=> \$in_path,
+			"out=s" 	=> \$out_path,
+			"loci=s" 	=> \$loci,
 			"threads=i" 	=> \$num_threads,
 			"collect:1" 	=> \$collect,
-			"help:1"		=> \$help
+			"help:1"	=> \$help
 			)
 			or die ("Error in command line arguments\n");
 	
 die "$usage\n" if !($in_path && $out_path && $loci) or ($help);
 
-## If the outpath does not exist, create it;
+# If the outpath does not exist, create it;
 
 if (! -e "$out_path/assembly_1st") {
 	
@@ -47,7 +47,7 @@ if (! -e "$out_path/assembly_1st") {
 	
 }
 
-##delete any tmp files;
+# delete any tmp files;
 
 `find $in_path/ -name "*cap*" |xargs rm -rf`;
 
@@ -58,7 +58,7 @@ print "Starting the first run...\n";
 `echo cap3 $cmd > $out_path/log/assembly.1par`;
 
 
-##	extract consensus from stacks catalogs;
+# extract consensus from stacks catalogs;
 open (my $in_tags, "gunzip -c $loci |") or die "$!";
 my %seqs;
 while (<$in_tags>) {
@@ -75,7 +75,7 @@ while (<$in_tags>) {
 
 close $in_tags;
 
-##	multi-threading part for the 1st assembly;
+# multi-threading part for the 1st assembly;
 my $thread_m = new Parallel::ForkManager($num_threads);
 
 foreach $file (@files){
@@ -90,7 +90,7 @@ foreach $file (@files){
 $thread_m->wait_all_children;
 `find $in_path/ -name "*cap*" |xargs rm -rf`;
 
-## 2nd assembly;
+# 2nd assembly;
 print "Starting the second run...\n";
 #######
 $cmd = '-r 0 -k 0'; #Parameters for the second assembly.
@@ -121,7 +121,7 @@ foreach $file (@files){
 $thread_m->wait_all_children;
 `find $out_path/assembly_1st/ -name "*cap*" |xargs rm -rf`;
 
-##collect the final results, and delet useless files;
+# collect the final results, and delet useless files;
 print "Starting to collect the final contigs...\n";
 
 get_flist("$out_path/assembly_2nd", $out_path, "2nd_assembled","fa");	# get the list of second assembly files;
@@ -130,7 +130,7 @@ parse_fasta(\@files, "$out_path/assembly_2nd", "$out_path", "collected_final.fa"
 
 
 
-##	if collect contigs for reads1;
+# if collect contigs for reads1;
 if ($collect) {
 	
 	my $in_fa = $out_path . "/" . "assembly_1st";
@@ -177,7 +177,7 @@ sub run_assembly {
 	
 	my ($file, $in_path, $out_path, $run, $cmd) = @_;
 	
-	system("cap3 $in_path/$file $cmd 1>/dev/null 2>>$out_path/error.log && cp $in_path/$file.cap.contigs $out_path/$file"); #Changed, maybe some bugs here.
+	system("cap3 $in_path/$file $cmd 1>/dev/null 2>>$out_path/error.log && cp $in_path/$file.cap.contigs $out_path/$file"); # Changed, maybe some bugs here.
 		
 	if ($run ==1) {
 		my $locus = substr($file, 0, -3);
@@ -206,7 +206,7 @@ sub get_flist {
 	opendir (D, $in_path) or die "$!";
 	open(my $out_list, ">$out_path/log/$name\.txt") or die "$!";
 
-	##	get the file list;
+	# get the file list;
 	
 	while (($file = readdir(D))) {
 		next if $file !~ /.+\.$type$/;
