@@ -51,7 +51,7 @@ while (<$in_fh>) {
 	my $miss   = 0;
 	my @genos;
 	undef @genos;
-	for (my $i=3; $i<$#parts; $i+=3) {
+	for (my $i=3; $i<=$#parts; $i+=3) {
 		
 		my $dp    = $parts[$i]; #Depth of covered reads.
 		my $base  = uc($parts[$i+1]);
