@@ -157,6 +157,9 @@ for (my $i=0; $i<=$#order; ++$i) {
 }		
 
 sub weir_and_cockerham_fst {
+
+	# Weir, B. S., and C. Clark Cockerham. "Estimating F-Statistics for the Analysis of Population Structure." 
+	# Evolution 38, no. 6 (1984): 1358-370. doi:10.2307/2408641.
 	
 	my ($n1, $n2, $p1, $p2, $het1, $het2) = @_;
 	my $n_bar = ($n1 + $n2)/4;
@@ -187,11 +190,15 @@ sub weir_and_cockerham_fst {
 }
 
 sub arlequin_fst {
+	
+	# Michalakis, Y. and Excoffier, L. , 1996 "A generic estimation of population subdivision 
+        # using distances between alleles with special reference to microsatellite loci." 
+        # Genetics 142:1061-1064.
 
 	my ($n1, $n2, $p1, $p2) = @_;
 	my $b       = ($n1 + $n2);
 	my $n       = $b; # It is 2N indeed. 
-       $b      -= ($n1**2 + $n2**2)/$n;
+           $b      -= ($n1**2 + $n2**2)/$n;
 	my $ssd_T   = ($p1 + $p2) * ($n1 - $p1 + $n2 - $p2)/$n;
 	my $ssd_WP  = $p1*($n1 - $p1)/$n1;
 	   $ssd_WP += $p2*($n2 - $p2)/$n2;
@@ -205,7 +212,12 @@ sub arlequin_fst {
 }
 
 sub stacks_fst {
-
+	
+	
+	# Hohenlohe PA, Bassham S, Etter PD, Stiffler N, Johnson EA, Cresko WA. 2010. "Population 
+	# genomics of parallel adaptation in threespine stickleback using sequenced RAD tags." 
+	# PLoS Genetics, 6(2):e1000862.
+	
 	my ($n1, $n2, $p1, $p2) = @_;
 	my $q1     = $n1 - $p1;
 	my $q2     = $n2 - $p2;
@@ -244,7 +256,7 @@ sub binom_coeff {
 	my ($n, $k) = @_;
 	if ($n < $k) {return 0; next;}
 	
-	# From Stacks:
+    # From Stacks:
     # Compute the binomial coefficient using the method of:
     # Y. Manolopoulos, "Binomial coefficient computation: recursion or iteration?",
     # ACM SIGCSE Bulletin, 34(4):65-67, 2002.
