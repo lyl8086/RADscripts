@@ -9,11 +9,11 @@ my ($cmd, $infile, $outfile, $popmap, $minDP, $maxDP, $het, $fis);
 my ($minGQ, $minQ, $l_maf, $g_maf, $global, $num_threads, $help);
 my $cov = 0;
 GetOptions (
-			"in=s" 			=> \$infile,
-			"out=s" 		=> \$outfile,
+			"in=s" 		=> \$infile,
+			"out=s" 	=> \$outfile,
 			"Popmap=s"      => \$popmap,
-			"minDP=s" 	    => \$minDP,
-			"MaxDP=s" 	    => \$maxDP,
+			"minDP=s" 	=> \$minDP,
+			"MaxDP=s" 	=> \$maxDP,
 			"Het=f"         => \$het,
 			"Fis=f"         => \$fis,
 			"GQ=i"          => \$minGQ,
@@ -23,7 +23,7 @@ GetOptions (
 			"filter:1"      => \$global,
 			"threads=i" 	=> \$num_threads,
 			"coverage=f" 	=> \$cov,
-			"help:1"		=> \$help
+			"help:1"	=> \$help
 			)
 			or die ("Error in command line arguments\n");
 
