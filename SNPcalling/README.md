@@ -16,9 +16,9 @@ PREREQUISITES
 Usage
 ---
 ```shell
-  samtools mpileup -b [pop file] -f [reference] -B | Call_snp.pl -c [pop file] | bgzip -c >out.vcf.gz
+  samtools mpileup -b [bam list] -f [reference] -B | Call_snp.pl -c [bam list] | bgzip -c >out.vcf.gz
 
-  pop file: List of input BAM files, one file per line
+  bam list: List of input BAM files, one file per line
 ```
 
 Reference
