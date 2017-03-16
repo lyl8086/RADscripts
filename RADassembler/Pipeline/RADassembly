@@ -1,0 +1,218 @@
+#!/bin/bash
+
+
+Usage='
+	########################################################
+	A Pipeline For Assembly RAD-seq of Multiple Indidviduals
+	########################################################
+	-i input path. Clean reads containing enzyme site, reads1? 
+	   eg. (indiv name).fq[fa][.gz]
+	-o out path. 
+	-s paired-end path. Paired-end reads, reads2?
+	   eg. (indiv name_[12]).fq[fa][.gz]
+	-f input file type. "fasta", "fastaq", "gzfastq", "gzfasta"
+	-M PopMaP file
+	-D minimum stacks dapth
+	-m mismatch for ustacks
+	-n mismatch for cstacks
+	-t number of threads
+'
+while getopts "i:o:s:m:M:n:f:D:t:h" arg
+do
+	case $arg in
+		i)
+			in_path=$OPTARG     #file path.
+			;;
+		o)
+			out_path=$OPTARG    #out path.
+			;;
+		s)
+			samp=$OPTARG        #paired-end file path.
+			;;
+		f)
+			ftyp=$OPTARG        #file type.
+			;;
+		D)
+			minDP=$OPTARG       #minimum stacks depth.
+			;;
+		m)
+			mis=$OPTARG         #mismatch for ustacks.
+			;;
+		n)
+			c_mis=$OPTARG       #mismatch for cstacks.
+			;;
+		M)
+			map=$OPTARG         #PopMap file								
+			;;
+		t)
+			threads=$OPTARG     
+			;;
+		h)
+			echo "$Usage"
+			exit 1
+			;;
+		?)
+			echo "unknown argument"
+			exit 1
+			;;
+	esac
+done
+###### Functions #####
+function guess_fmt()
+{
+
+	f=`ls $1/*`
+	if [ ${f:0-6} == '.fq.gz' ];
+	then
+		ftyp='gzfastq'
+		suffix='fq.gz'
+	elif [ ${f:0-6} == '.fa.gz' ];
+	then
+		ftyp='gzfasta'
+		suffix='fa.gz'
+	elif [ ${f:0-3} == '.fq' ];
+	then
+		ftyp='fastq'
+		suffix='fq'
+	elif [ ${f:0-3} == '.fa' ];
+	then
+		ftyp='fasta'
+		suffix='fa'
+	else
+		echo 'unknown file format!'
+		exit 1
+	fi
+
+}
+####### Test part ######
+if [ $# -lt 4 ] || [ $1 = -h ];
+then 
+	echo "$Usage"
+	exit 1
+fi
+if [ ! `which ustacks 2>/dev/null` ];
+then
+echo "ustacks not exist!"
+echo "please download it at http://catchenlab.life.illinois.edu/stacks/"
+exit 1
+fi
+if [ ! `which cstacks 2>/dev/null` ];
+then
+echo "cstacks not exist!"
+echo "please download it at http://catchenlab.life.illinois.edu/stacks/"
+exit 1
+fi
+if [ ! `which cap3 2>/dev/null` ];
+then
+echo "cap3 not exist!"
+echo "please download it at http://seq.cs.iastate.edu/cap3.html"
+exit 1
+fi
+######Set environment ######
+cur_path=`pwd`
+chmod +x $cur_path/bin/*.pl
+export PATH=$cur_path/bin:$PATH
+
+###### Default parameters ######
+if [ -z "$in_path" ];
+then
+	echo "Please indicate input path!"
+	exit 1
+fi
+if [ -z "$out_path" ];
+then
+	echo "Please indicate out path!"
+	exit 1
+fi
+if [ -z "$samp" ];
+then
+	echo "Please indicate paired-end file path!"
+	exit 1
+fi
+if [ -z "$map" ];
+then
+	echo "Please indicate PopMap file!"
+	exit 1
+fi
+
+if [ -z "$mis" ];
+then
+	mis=2
+fi
+if [ -z "$mis_c" ];
+then
+	c_mis=1
+fi
+if [ -z "$minDP" ];
+then
+	minDP=3
+fi
+
+###### Sort the reads by Stacks ######
+if [ -d $out_path ];
+then 
+	echo "Directory exists! Do you want to delete it ?!!!"
+	read con
+	if [ $con == 'y' ] || [ $con == 'yes' ];
+	then
+		echo "Deleting $out_path..."
+		rm -rf $out_path
+	else
+		echo "Directory exists, Please rename it!"
+		exit 1;
+	fi
+fi
+
+mkdir -p $out_path/stacks
+mkdir -p $out_path/reads_export
+
+if [ -z $ftyp ];
+then
+	guess_fmt $in_path
+elif [ $ftyp == 'gzfastq' ];
+then
+	suffix='fq.gz'
+elif [ $ftyp == 'fastq' ];
+then
+	suffix='fq'
+elif [ $ftyp == 'fasta' ];
+then
+	suffix='fa'
+elif [ $ftyp == 'gzfasta' ];
+then
+	suffix='fa.gz'
+fi
+
+###### Read PopMap ######
+declare -A pop
+while read line
+do
+	key=`echo $line | awk '{print $1}'`
+	val=`echo $line | awk '{print $2}'`
+	pop[$key]="$val"
+done < $map
+
+
+len=${#pop[@]}
+i=1
+echo "Running ustacks..."
+for indv in ${!pop[@]};
+do ustacks -t $ftyp -f $in_path/$indv.$suffix -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $i &>> $out_path/stacks/Ustacks.log
+let i+=1
+done
+
+
+###### cstacks and sstacks ######
+echo "Running cstacks..."
+cstacks -b 1 -P $out_path/stacks/ -M $map -n $c_mis -p $threads &>$out_path/stacks/Cstacks.log
+echo "Running sstacks..."
+sstacks -b 1 -P $out_path/stacks/ -M $map -p $threads &>>$out_path/stacks/Sstacks.log
+
+###### export read pairs ######
+echo "Exporting fasta files..."
+sort_read_pairs.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -i ${ftyp#"gz"} &>$out_path/stacks/export.log
+
+###### run assembly ######
+echo "Run local assembly..."
+CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/batch_1.catalog.tags* -t $threads 
+echo "Done!"
