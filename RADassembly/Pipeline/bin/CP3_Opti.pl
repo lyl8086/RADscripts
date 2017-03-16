@@ -114,7 +114,7 @@ foreach $file (@files){
 	$thread_m->start and next;
 	
 	run_assembly($file, $in_path, "$out_path/assembly_1st", 1, $cmd);
-	print STDERR "Assembling locus $i; run $i of $total        \r";
+	print STDERR "Assembling locus $i of $total \r";
 	
 	$thread_m->finish;
 	
