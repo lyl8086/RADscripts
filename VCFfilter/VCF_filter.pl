@@ -4,16 +4,16 @@ use strict;
 use warnings;
 use List::MoreUtils qw{uniq};
 use Getopt::Long qw(:config no_ignore_case bundling);
-my (@header, $cnt, $pops, @order, $in_fh, $out_fh, %samples);
+my (@header, $cnt, $pops, @order, $in_fh, $out_fh, %samples, $tot_indiv);
 my ($cmd, $infile, $outfile, $popmap, $minDP, $maxDP, $het, $fis);
-my ($minGQ, $minQ, $l_maf, $g_maf, $global, $num_threads, $help);
-my $cov = 0;
+my ($cov, $minGQ, $minQ, $l_maf, $g_maf, $global, $num_threads, $help);
+
 GetOptions (
-			"in=s" 		=> \$infile,
-			"out=s" 	=> \$outfile,
+			"in=s" 			=> \$infile,
+			"out=s" 		=> \$outfile,
 			"Popmap=s"      => \$popmap,
-			"minDP=s" 	=> \$minDP,
-			"MaxDP=s" 	=> \$maxDP,
+			"minDP=s" 	    => \$minDP,
+			"MaxDP=s" 	    => \$maxDP,
 			"Het=f"         => \$het,
 			"Fis=f"         => \$fis,
 			"GQ=i"          => \$minGQ,
@@ -23,46 +23,87 @@ GetOptions (
 			"filter:1"      => \$global,
 			"threads=i" 	=> \$num_threads,
 			"coverage=f" 	=> \$cov,
-			"help:1"	=> \$help
+			"help:1"		=> \$help
 			)
 			or die ("Error in command line arguments\n");
 
 my $usage = 
 '	
-	Options [default values]:
+	Options [* must]:
 	
-	--i input vcf file.
-	--o output file.
-	--P PopMap file.
-	--c coverage for each population.
-	--m min depth of each individual.
-	--M max depth of each individual.
-	--H max Ho of each population.
-	--F abs Fis value.
-	--G min Genotype quality.
-	--Q min quality for each SNP.
-	--g Global MAF.
-	--l Local MAF.
-	--f apply the filter (Ho and Fis) on each site instead of each population.
-	--t number of threads.
-	--h help.
+	--i *input vcf file.
+	--o *output file.
+	--P *PopMap file.
+	--c  coverage for each population.
+	--m  min depth of each individual.
+	--M  max depth of each individual.
+	--H  max Ho of each population.
+	--F  abs Fis value.
+	--G  min Genotype quality.
+	--Q  min quality for each SNP.
+	--g  Global MAF.
+	--l  Local MAF.
+	--f  apply the filter (Ho and Fis) on each site instead of each population.
+	--t  number of threads.
+	--h  help.
 ';
 	
 die "$usage\n" if $help or !($infile && $outfile && $popmap);
 
 if (substr($infile, -2) eq 'gz') {
 	open($in_fh, "gunzip -c $infile|") or die "$!";
-	} else {
+	} 
+elsif (substr($infile, -2) eq '7z') {
+	open($in_fh, "7zcat.sh $infile|") or die "$!";
+	}
+else {
 	open($in_fh, "$infile") or die "$!";
 }
+
+###### Parameters ######
+no warnings;
+my $para = "Parameters:
+	File name  : $infile
+	Coverage   : $cov
+	MinGQ      : $minGQ
+	MinQ       : $minQ
+	MinDepth   : $minDP
+	MaxDP      : $maxDP
+	MaxHo      : $het
+	Fis        : $fis
+	Global MAF : $g_maf
+	Local MAF  : $l_maf
+	Out name   : $outfile";
+
+use warnings;
+open($out_fh, ">$outfile.log") or die "$!";
+print $out_fh $para;
+close $out_fh;
+print STDERR "$para\n";
 
 if (substr($outfile, -2) eq 'gz') {
 	open($out_fh, "|bgzip -c >$outfile") or die "$!";
 	} else {
 	open($out_fh, ">$outfile") or die "$!";
 }
-		
+
+print STDERR "\tFiltering......\n";		
 while (<$in_fh>) {
+	#Just output number of SNPs if nothing need to be filtered.
+	unless ($cov || $minGQ || $minDP || $maxDP || $het || $fis
+	|| $g_maf || $l_maf || $minQ) {
+	
+		print $out_fh $_;
+		if (/^#/) {
+			chomp;
+			my @tmp = split;
+			$tot_indiv = @tmp - 9;
+			next;
+		}
+		$cnt++;
+		next;
+	}
+	
 	next if /^##|^$/;
 	chomp;
 	if (/^#/) {
@@ -94,7 +135,8 @@ while (<$in_fh>) {
 		}
 		close $pop;
 		die "Header is wrong!" if @order != (@header -9);
-		@order = uniq @order;
+		$tot_indiv = @order; 
+		@order     = uniq @order;
 		
 		###### Print header ######
 		print $out_fh join("\t", @header[0..8]);
@@ -121,6 +163,7 @@ while (<$in_fh>) {
 	my $cnt_gmaf         = 0;
 	my $cnt_lmaf->{$ref} = 0;
 	   $cnt_lmaf->{$alt} = 0;
+	my $mono             = 0;
 	next if $alt =~ /,|\./;                                           #Skip non-biallelic loci.
 	next if (defined $minQ && $qual < $minQ);                         #minmum quality.
 	my $recode = 0;                                                   #Populations number of non-enough coverage. 
@@ -164,12 +207,16 @@ while (<$in_fh>) {
 			$miss++ if $GT eq './.';
 			push @filtered, join(":", @geno);
 			push (@gts, $GT) if $GT ne './.';                            #For calculate statistics.
-			push (@gts_total, $GT) if $GT ne './.' && ($global or $g_maf); #Global genotypes.
+			push (@gts_total, $GT) if $GT ne './.'; #Global genotypes.
+			
 		}
 		###### Coverage ######
-		$cov_ratio = (1-$miss/$total);
-		$recode++ if $cov_ratio < $cov;
-		last if $cov_ratio < $cov;
+		if ($cov) {
+			
+			$cov_ratio = $cov > 1 ? ($total - $miss) : (1-$miss/$total);
+			$recode++ if $cov_ratio < $cov;
+			last if $cov_ratio < $cov;
+		}
 		
 		###### Local ######
 		if ((!$global && ($het or $fis)) or $l_maf) {
@@ -224,17 +271,29 @@ while (<$in_fh>) {
 		
 	}
 	
+	
 	next if $cnt_Ho   > 0;
 	next if $cnt_Fis  > 0;
 	next if $cnt_gmaf > 0 && ($cnt_lmaf->{$ref} == @order or $cnt_lmaf->{$alt} == @order);
+	unless ($g_maf || $l_maf) {
+	
+		my @tmp = uniq @gts_total; # Monomorphic?
+		next if @tmp == 1;
+	}
 	
 	###### Print each snp sites ######
 	print $out_fh join("\t", $chrom, $pos, $id, $ref, $alt, $qual, $filter, $info, $format), "\t";
 	print $out_fh join("\t", @filtered), "\n";
+	$cnt++; # SNP number.
 	
 }
 
 close $out_fh;
+
+open($out_fh, ">>$outfile.log") or die "$!";
+print $out_fh "\nFinal retained : $cnt SNPs of $tot_indiv individuals\n";
+close $out_fh;
+print STDERR "\tFinal retained: $cnt SNPs of $tot_indiv individuals\n";
 
 sub calc_stat {
 

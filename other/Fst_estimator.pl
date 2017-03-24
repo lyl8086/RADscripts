@@ -7,8 +7,8 @@ use warnings;
 use List::MoreUtils qw{uniq};
 use Getopt::Long qw(:config no_ignore_case bundling);
 
-my ($in_fh, $out_fh, @header, $cnt, $pops, @order, %samples);
-my ($infile, $outfile, $pop, $indivs, $popmap, $sum_fst, $cnt_fst);
+my ($in_fh, $out_fh, @header, $cnt, $pops, @order, %samples, $sum_fst);
+my ($infile, $outfile, $pop, $indivs, $popmap, $sum_a, $sum_t, $cnt_fst);
 $infile = $ARGV[0];
 $popmap = $ARGV[1];
 die "Usage: Fst_estimator.pl <vcf> <popmap>\n" unless @ARGV >= 2;
@@ -110,56 +110,82 @@ while (<$in_fh>) {
 			   $n2  *= 2;
 			my $p2   = 2 * $AA->{$pop2} + $Aa->{$pop2};
 			my $het2 = $Aa->{$pop2};
+			my ($Fst, @Fsts, $a, $sum);
+			($Fst->{'wc'},  $a->{'wc'},  $sum->{'wc'})  = weir_and_cockerham_fst($n1, $n2, $p1, $p2, $het1, $het2);
+			($Fst->{'ar'},  $a->{'ar'},  $sum->{'ar'})  = arlequin_fst($n1, $n2, $p1, $p2); # Arlequin.
+			($Fst->{'frq'}, $a->{'frq'}, $sum->{'frq'}) = weir_and_cockerham_freq($n1, $n2, $p1, $p2); #
+			$Fst->{'st'}  = stacks_fst($n1, $n2, $p1, $p2); # Stacks.
+			$Fst->{'nei'} = nei_fst($n1, $n2, $p1, $p2);
+			my @para = ('wc', 'ar', 'frq', 'st', 'nei');
+			foreach my $i (@para) {
+				$cnt_fst->{$pop1.$pop2}->{$i}++ if $Fst->{$i} ne 'NAN'; # Count of Fst.
+				$sum_fst->{$pop1.$pop2}->{$i} += $Fst->{$i} if $Fst->{$i} ne 'NAN'; # Sum of Fst.
+				
+				$sum_a->{$pop1.$pop2}->{$i} += $a->{$i} if defined $a->{$i};
+				$sum_t->{$pop1.$pop2}->{$i} += $sum->{$i} if defined $sum->{$i};
+				push @Fsts, sprintf("%9.6f", $Fst->{$i});
+				
+			}
 			
-			my ($fst_wc, $a, $sum) = weir_and_cockerham_fst($n1, $n2, $p1, $p2, $het1, $het2);
-			my $fst_ar = arlequin_fst($n1, $n2, $p1, $p2);
-			my $fst_st = stacks_fst($n1, $n2, $p1, $p2);
-			my $fst_nei= nei_fst($n1, $n2, $p1, $p2);
-			$cnt_fst->{$pop1.$pop2}->{'wcfst'}++ if $fst_wc ne 'NAN';
-			$sum_fst->{$pop1.$pop2}->{'a'} += $a;
-			$sum_fst->{$pop1.$pop2}->{'sum'} += $sum;
-	
 			my $out_name = $pop1 . "-" . $pop2 . '.fst';
 			if ($cnt == 1) {
 				open($out_fh, ">$out_name") or die "$!";
-				print $out_fh join("\t", 'CHROM', 'POS', 'WCFst', 'Arlequin', 'Stacks', 'Nei'), "\n";
+				printf $out_fh "%-9s\t"x7,('CHROM', 'POS', 'wcFst', 'Arlequin', 'Freq', 'Stacks', 'Nei');
+				print $out_fh "\n";
 				close $out_fh;
 			}
 			open($out_fh, ">>$out_name") or die "$!";
-			print $out_fh join("\t", $chrom, $pos, $fst_wc, $fst_ar, $fst_st, $fst_nei), "\n";
+			print $out_fh join("\t", $chrom, $pos, @Fsts), "\n";
 		}
 	}
 	
 	
 }
-
+close $out_fh;
 # Output matrix.
-printf "\t%8s\n", join("\t", @order); # First line.
-for (my $i=0; $i<=$#order; ++$i) {
+print "Weir and Cockerham Weighted Fst:\n";
+print_matrix('weight', 'wc');
+# 
+print "\nArlequin Weight Fst:\n";
+print_matrix('weight', 'ar');
+#
+print "\nFrequency Weight Fst:\n";
+print_matrix('weight', 'frq');
+#
+print "\nStacks Mean Fst:\n";
+print_matrix('mean', 'st');
+#
+print "\nNei Mean Fst:\n";
+print_matrix('mean', 'nei');	
+######
+
+sub print_matrix {
 	
-	my $pop1 = $order[$i];
-	for (my $j=0; $j<=$i; ++$j) {
-		my $pop2 = $order[$j];
-		print $pop1 if $j == 0; 
-		if ($j == $i) {printf "\t%8.5f\n",'0.00000';next;}
-		my $weit  = $sum_fst->{$pop2.$pop1}->{'a'};
-		   $weit /= $sum_fst->{$pop2.$pop1}->{'sum'};
-		   $weit  = sprintf "%8.5f", $weit;
-		#print ' ', $weit if $weit >= 0;
-		#print $weit if $weit < 0;
-		print "\t", $weit;
-		
-		
-	}
-
-		
-		
-}		
-
+	my $flag_1 = shift;
+	my $flag_2 = shift;
+	map {printf "%10s", $_} @order; # First line.
+	print "\n";
+	for (my $i=0; $i<=$#order; ++$i) {
+	
+		my $pop1 = $order[$i];
+		for (my $j=0; $j<=$i; ++$j) {
+			my $pop2 = $order[$j];
+			print $pop1 if $j == 0; 
+			if ($j == $i) {printf "%10.5f\n",'0.00000';next;}
+			if ($flag_1 eq 'weight') {
+				my $weit  = $sum_a->{$pop2.$pop1}->{$flag_2};
+				   $weit /= $sum_t->{$pop2.$pop1}->{$flag_2};
+				printf "%10.5f", $weit;
+			} elsif ($flag_1 eq 'mean') {
+				my $mean  = $sum_fst->{$pop2.$pop1}->{$flag_2};
+				   $mean /= $cnt_fst->{$pop2.$pop1}->{$flag_2};
+				printf "%10.5f", $mean;
+			}
+		}
+	}	
+}
+	
 sub weir_and_cockerham_fst {
-
-	# Weir, B. S., and C. Clark Cockerham. "Estimating F-Statistics for the Analysis of Population Structure." 
-	# Evolution 38, no. 6 (1984): 1358-370. doi:10.2307/2408641.
 	
 	my ($n1, $n2, $p1, $p2, $het1, $het2) = @_;
 	my $n_bar = ($n1 + $n2)/4;
@@ -189,35 +215,45 @@ sub weir_and_cockerham_fst {
 	return ($fst, $a, $sum);
 }
 
-sub arlequin_fst {
+sub weir_and_cockerham_freq {
+
+	my ($n1, $n2, $p1, $p2) = @_;
+	my $n_bar = ($n1 + $n2)/4;
+	my $nc    = 2*$n_bar - (($n1/2)**2 + ($n2/2)**2)/(2*$n_bar);
+	my $p_bar = ($p1 + $p2)/($n1 + $n2);
+	my $ssa   = $n1/2 * ($p1/$n1 - $p_bar)**2;
+	   $ssa  += $n2/2 * ($p2/$n2 - $p_bar)**2;
+	   $ssa  /= $n_bar;
+	my $a     = ($p_bar*(1-$p_bar) - 0.5*$ssa)/(2*$n_bar - 1);
+	   $a     = $ssa - $a;
+	my $sum   = (2*$nc - 1)*$p_bar*(1 - $p_bar)/(2*$n_bar - 1);
+	   $sum  += (1 + 2*($n_bar - $nc)/(2*$n_bar - 1))*0.5*$ssa;
+	if ($sum == 0) {return('NAN', $a, $sum);next;}
+	my $fst   = $a / $sum;
+	return ($fst, $a, $sum);
+}
 	
-	# Michalakis, Y. and Excoffier, L. , 1996 "A generic estimation of population subdivision 
-        # using distances between alleles with special reference to microsatellite loci." 
-        # Genetics 142:1061-1064.
+
+sub arlequin_fst {
 
 	my ($n1, $n2, $p1, $p2) = @_;
 	my $b       = ($n1 + $n2);
 	my $n       = $b; # It is 2N indeed. 
-           $b      -= ($n1**2 + $n2**2)/$n;
+       $b      -= ($n1**2 + $n2**2)/$n;
 	my $ssd_T   = ($p1 + $p2) * ($n1 - $p1 + $n2 - $p2)/$n;
 	my $ssd_WP  = $p1*($n1 - $p1)/$n1;
 	   $ssd_WP += $p2*($n2 - $p2)/$n2;
+	my $wp      = ($n-2)*$ssd_T - ($n-1)*$ssd_WP;
 	my $total   = ($n-2)*$ssd_T - ($n-1-$b)*$ssd_WP;
-	if ($total == 0) {return 'NAN'; next;}
-	my $fst     = ($n-2)*$ssd_T - ($n-1)*$ssd_WP;
-	   $fst    /= $total;
-	  
-	return $fst;
+	if ($total == 0) {return('NAN', $wp, $total); next;}
+	my $fst     = $wp/$total;
+	
+	return ($fst, $wp, $total);
 
 }
 
 sub stacks_fst {
-	
-	
-	# Hohenlohe PA, Bassham S, Etter PD, Stiffler N, Johnson EA, Cresko WA. 2010. "Population 
-	# genomics of parallel adaptation in threespine stickleback using sequenced RAD tags." 
-	# PLoS Genetics, 6(2):e1000862.
-	
+
 	my ($n1, $n2, $p1, $p2) = @_;
 	my $q1     = $n1 - $p1;
 	my $q2     = $n2 - $p2;
@@ -256,7 +292,7 @@ sub binom_coeff {
 	my ($n, $k) = @_;
 	if ($n < $k) {return 0; next;}
 	
-    # From Stacks:
+	# From Stacks:
     # Compute the binomial coefficient using the method of:
     # Y. Manolopoulos, "Binomial coefficient computation: recursion or iteration?",
     # ACM SIGCSE Bulletin, 34(4):65-67, 2002.
