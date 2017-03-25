@@ -2,7 +2,7 @@
 
 >Filter options include coverage for each population, depth for each individual, Ho, MAF and Fis etc.  
 
-Prerequisites:
+Prerequisites(for Vcf_filter.sh):
 =
 * [VCFTOOLS] (https://github.com/vcftools/vcftools)
 
