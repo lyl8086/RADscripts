@@ -9,11 +9,11 @@ my ($cmd, $infile, $outfile, $popmap, $minDP, $maxDP, $het, $fis);
 my ($cov, $minGQ, $minQ, $l_maf, $g_maf, $global, $num_threads, $help);
 
 GetOptions (
-			"in=s" 			=> \$infile,
-			"out=s" 		=> \$outfile,
+			"in=s" 		=> \$infile,
+			"out=s" 	=> \$outfile,
 			"Popmap=s"      => \$popmap,
-			"minDP=s" 	    => \$minDP,
-			"MaxDP=s" 	    => \$maxDP,
+			"minDP=s" 	=> \$minDP,
+			"MaxDP=s" 	=> \$maxDP,
 			"Het=f"         => \$het,
 			"Fis=f"         => \$fis,
 			"GQ=i"          => \$minGQ,
@@ -23,7 +23,7 @@ GetOptions (
 			"filter:1"      => \$global,
 			"threads=i" 	=> \$num_threads,
 			"coverage=f" 	=> \$cov,
-			"help:1"		=> \$help
+			"help:1"	=> \$help
 			)
 			or die ("Error in command line arguments\n");
 
@@ -253,13 +253,13 @@ while (<$in_fh>) {
 		###### Het ######
 		if ($global && $het && $Ho > $het) {
 			$cnt_Ho++;
-			last;
+			next;
 		}
 		
 		###### Fis ######
 		if ($global && $fis && abs($Fis) > $fis) {
 			$cnt_Fis++;
-			last;
+			next;
 		}
 		
 		###### MAF ######
@@ -272,8 +272,6 @@ while (<$in_fh>) {
 	}
 	
 	
-	next if $cnt_Ho   > 0;
-	next if $cnt_Fis  > 0;
 	next if $cnt_gmaf > 0 && ($cnt_lmaf->{$ref} == @order or $cnt_lmaf->{$alt} == @order);
 	unless ($g_maf || $l_maf) {
 	
