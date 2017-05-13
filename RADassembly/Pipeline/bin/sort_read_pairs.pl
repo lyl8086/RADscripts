@@ -24,6 +24,9 @@
 #
 # By Julian Catchen <jcatchen@illinois.edu>
 #
+#
+# Modified by Yulong Li
+#
 
 use strict;
 use constant stacks_version => "1.32";
@@ -194,7 +197,24 @@ sub load_stacks {
         #
         # Index by sequence ID -> stack ID
         #
-        $stacks->{(split(/\s+/,$parts[8],2))[0]} = $parts[2];	#Modified select the second field of fastq header 
+		if ($parts[8] =~ /(.+)?[\s+\|](.+)/) {
+			#
+			# Type I: 
+			# HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
+			#
+			# Type II:
+			# CTACAG_8_1103_15496_190439_1|1
+			#
+			$stacks->{$1} = $parts[2];
+		} elsif ($parts[8] =~ /(.+)_[12]$/) {
+			#
+			# Type III:
+			# 4_1101_13393_1801_1
+			#
+			$stacks->{$1} = $parts[2];
+		} else {
+			$stacks->{$parts[8]} = $parts[2];
+		}
     }
 
     close($in_fh);
@@ -207,21 +227,54 @@ sub process_fastq_read_pairs {
 
 	if ($gzipped == true) {
 	    $file = $in_path . "/" . $in_file->{'prefix'} . "_1.fq.gz";
-	    open($in_fh, "gunzip -c $file |") or ($file = $in_path . "/" . $in_file->{'prefix'} . "_2.fq.gz");
-		open($in_fh, "gunzip -c $file |") or die("Unable to open paired-end input file '$file'\n");
+		if (-e $file) {
+			open($in_fh, "gunzip -c $file |") or die("Unable to open paired-end input file $file\n");
+		} else {
+			$file = $in_path . "/" . $in_file->{'prefix'} . '_2.fq.gz';
+			open($in_fh, "gunzip -c $file |") or die("Unable to open paired-end input file $file\n");
+		}
 	} else {
 	    $file = $in_path . "/" . $in_file->{'prefix'} . "_1.fq";
-	    open($in_fh, "<$file") or ($file = $in_path . "/" . $in_file->{'prefix'} . "_2.fq");
-		open($in_fh, "<$file") or die("Unable to open paired-end input file '$file'\n");
+		if (-e $file) {
+			open($in_fh, "<$file") or die("Unable to open paired-end input file $file\n");
+		} else {
+			$file = $in_path . "/" . $in_file->{'prefix'} . '_2.fq';
+			open($in_fh, "<$file") or die("Unable to open paired-end input file $file\n");
+		}
 	}
     
 
     while ($line = <$in_fh>) {
 	next if (substr($line, 0, 1) ne "@");
 	chomp $line;
-
-    $read_id = substr((split(/\s+/,$line))[0], 1);	#Modified
-	$read_dd = substr($line, 1); #Original read id.
+	#
+	#
+	#
+	if ($line =~ /(.+)?[\s+\|](.+)/) {
+		#
+		# Type I: 
+		# HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
+		#
+		# Type II:
+		# CTACAG_8_1103_15496_190439_1|1
+		#
+		$read_id = substr($1, 1);	#Modified
+		$read_dd = substr($line, 1); #Original read id.
+	} elsif ($line =~ /(.+)_[12]$/) {
+		#
+		# Type III:
+		# 4_1101_13393_1801_1
+		#
+		$read_id = substr($1, 1);
+		$read_dd = substr($line, 1);
+	} else {
+		$read_id = substr($1, 1);
+		$read_dd = substr($line, 1);
+	}
+	#
+	#
+	#
+	
 	$seq     = <$in_fh>;
 	chomp $seq;
 
@@ -251,20 +304,52 @@ sub process_fasta_read_pairs {
 
 	if ($gzipped == true) {
 		$file = $in_path . "/" . $in_file->{'prefix'} . "_1.fa.gz";
-	    open($in_fh, "gunzip -c $file |") or $file = $in_path . "/" . $in_file->{'prefix'} . "_2.fa.gz";
-		open($in_fh, "gunzip -c $file |") or die("Unable to open paired-end input file '$file'\n");
+	   if (-e $file) {
+			open($in_fh, "gunzip -c $file |") or die("Unable to open paired-end input file $file\n");
+		} else {
+			$file = $in_path . "/" . $in_file->{'prefix'} . '_2.fa.gz';
+			open($in_fh, "gunzip -c $file |") or die("Unable to open paired-end input file $file\n");
+		}
 	} else {
 	    $file = $in_path . "/" . $in_file->{'prefix'} . "_1.fa";
-	    open($in_fh, "<$file") or $file = $in_path . "/" . $in_file->{'prefix'} . "_2.fa";
-		open($in_fh, "<$file") or die("Unable to open paired-end input file '$file'\n");
+	    if (-e $file) {
+			open($in_fh, "$file") or die("Unable to open paired-end input file $file\n");
+		} else {
+			$file = $in_path . "/" . $in_file->{'prefix'} . '_2.fa';
+			open($in_fh, "$file") or die("Unable to open paired-end input file $file\n");
+		}
 	}
     while ($line = <$in_fh>) {
 	next if (substr($line, 0, 1) ne ">");
 	chomp $line;
 	
-    $read_id = substr((split(/\s+/,$line))[0], 1);	#Modified
-	$read_dd = substr($line, 1); #Original read id.
-	#print $read_id;
+    #
+	#
+	#
+	if ($line =~ /(.+)?[\s+\|](.+)/) {
+		#
+		# Type I: 
+		# HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
+		#
+		# Type II:
+		# CTACAG_8_1103_15496_190439_1|1
+		#
+		$read_id = substr($1, 1);	#Modified
+		$read_dd = substr($line, 1); #Original read id.
+	} elsif ($line =~ /(.+)_[12]$/) {
+		#
+		# Type III:
+		# 4_1101_13393_1801_1
+		#
+		$read_id = substr($1, 1);
+		$read_dd = substr($line, 1);
+	} else {
+		$read_id = substr($1, 1);
+		$read_dd = substr($line, 1);
+	}
+	#
+	#
+	#
 	$seq     = <$in_fh>;
 	chomp $seq;
 

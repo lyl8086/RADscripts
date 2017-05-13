@@ -190,7 +190,7 @@ sub parse_fasta {
 	
 	open ($out_fh, ">$out_fa/$name_fa") or die "$!";
 	
-	foreach $file (@files) {
+	foreach $file (@$files) {
 		open ($in_fh, "<$in_fa/$file") or die "$!";
 		while (<$in_fh>) {
 		
