@@ -167,7 +167,7 @@ if [ -z "$mis" ];
 then
 	mis=2
 fi
-if [ -z "$mis_c" ];
+if [ -z "$c_mis" ];
 then
 	c_mis=1
 fi
