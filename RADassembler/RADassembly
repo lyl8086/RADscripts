@@ -2,15 +2,15 @@
 
 
 Usage='
-	########################################################
-	A Pipeline For Assembly RAD-seq of Multiple Indidviduals
-	########################################################
+	#############################################################
+	A Pipeline For Assembly of RAD-seq from Multiple Indidviduals
+	#############################################################
 	
-	-i input path. Clean reads containing enzyme site, reads1? 
-	   eg. (indiv name).fq[fa][.gz]
+	-i input path. Clean reads containing enzyme site, read1? 
+	   e.g. (indiv name).fq[fa][.gz]
 	-o out path. 
-	-s paired-end path. Paired-end reads, reads2?
-	   eg. (indiv name_[12]).fq[fa][.gz]
+	-s paired-end path. Paired-end reads, read2?
+	   e.g. (indiv name_[12]).fq[fa][.gz]
 	-f input file type. "fasta", "fastq", "gzfastq", "gzfasta"
 	-P PopMaP file
 	-M minimum stacks dapth
