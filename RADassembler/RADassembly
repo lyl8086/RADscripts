@@ -12,13 +12,14 @@ Usage='
 	-s paired-end path. Paired-end reads, reads2?
 	   eg. (indiv name_[12]).fq[fa][.gz]
 	-f input file type. "fasta", "fastq", "gzfastq", "gzfasta"
-	-M PopMaP file
-	-D minimum stacks dapth
+	-P PopMaP file
+	-M minimum stacks dapth
 	-m mismatch for ustacks
 	-n mismatch for cstacks
+	-D minimum read depth of a locus to export for assembly
 	-t number of threads
 '
-while getopts "i:o:s:m:M:n:f:D:t:h" arg
+while getopts "i:o:s:m:M:n:f:P:D:t:h" arg
 do
 	case $arg in
 		i)
@@ -33,7 +34,7 @@ do
 		f)
 			ftyp=$OPTARG        #file type.
 			;;
-		D)
+		M)
 			minDP=$OPTARG       #minimum stacks depth.
 			;;
 		m)
@@ -42,8 +43,11 @@ do
 		n)
 			c_mis=$OPTARG       #mismatch for cstacks.
 			;;
-		M)
+		P)
 			map=$OPTARG         #PopMap file								
+			;;
+		D)
+			minL=$OPTARG		#minimum loci depth for export reads.
 			;;
 		t)
 			threads=$OPTARG     
@@ -136,9 +140,11 @@ fi
 ############################
 
 ######Set environment ######
-cur_path=`pwd`
+cur_path=`which RADassembly`
+cur_path=${cur_path%"RADassembly"}
 chmod +x $cur_path/bin/*.pl
 export PATH=$cur_path/bin:$PATH
+echo "Your Path is:$PATH"
 ################################
 
 ###### Default parameters ######
@@ -174,6 +180,10 @@ fi
 if [ -z "$minDP" ];
 then
 	minDP=3
+fi
+if [ -z "$minL" ];
+then
+	minL=3
 fi
 ######################################
 
@@ -255,7 +265,7 @@ fi
 
 ###### export read pairs ######
 echo "Exporting fasta files..."
-sort_read_pairs.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -i ${ftyp#"gz"} 2>&1 | tee $out_path/stacks/export.log
+sort_read_pairs.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -m $minL -i ${ftyp#"gz"} 2>&1 | tee $out_path/stacks/export.log
 ##########################
 
 ###### run assembly ######
