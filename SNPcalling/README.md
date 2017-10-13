@@ -2,7 +2,7 @@
 
 Please cite our paper if you find it useful to your work.
 
->Yulong Li <em>et al</em>. (in prep) Optimized contigs assembly and SNP discovery by overlapping paired-end RAD sequencing in roughskin sculpin (<em>Trachidermus fasciatus</em> Heckel) 
+>Yulong Li <em>et al</em>. (in prep) An optimized highly efficient approach for local de novo assembly of multiple individuals’ reads based on overlapping paired-end RAD sequencing
 
 PREREQUISITES
 ---
