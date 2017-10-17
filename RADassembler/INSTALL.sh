@@ -8,9 +8,9 @@ then
 	mkdir $exepath
 fi
 
-cp -a RADassembly bin/ $exepath
+cp -a RADassembler bin/ $exepath
 
-chmod +x $exepath/RADassembly
+chmod +x $exepath/RADassembler
 cp ~/.bashrc ~/.bashrc.bak
 echo -e "export PATH=$exepath:\$PATH" >> ~/.bashrc
 
