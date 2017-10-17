@@ -18,6 +18,7 @@ How to install
 ```
 How to Run
 ---
+
 ```
 # RADassembler
 
@@ -33,6 +34,8 @@ Usage:
   -D minimum read depth of a locus to export for assembly
   -t number of threads
 ```
+<b>see</b> [samples](samples) for an example run.
+
 About the output
 ---
 <ul>
