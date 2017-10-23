@@ -11,10 +11,12 @@ PREREQUISITES
 
 * [STACKS](http://catchenlab.life.illinois.edu/stacks/)
 
-How to install
+* Perl module [Parallel::ForkManager](https://metacpan.org/release/Parallel-ForkManager)
+
+How to Install
 ---
 ```
-#sh INSTALL.sh
+# sh INSTALL.sh
 ```
 How to Run
 ---
@@ -38,11 +40,15 @@ Usage:
 
 About the output
 ---
-<ul>
-<li><b>collected_final.fa</b>: the final assembled contigs</li>
-<li><b>assembly_1st</b>: folder contains fasta files of the first assembly</li>
-<li><b>assembly_2nd</b>: folder contains fasta files of the second assembly</li>
-<li><b>log</b>: folder contains run paramerts</li>
-</ul>
+Folder [Assembly](samples/Assembly_out/Assembly)
+* <b>collected_final.fa</b>: the final assembled contigs
+* <b>assembly_1st</b>: folder contains fasta files of the first assembly
+* <b>assembly_2nd</b>: folder contains fasta files of the second assembly
+* <b>log</b>: folder contains run paramerts
 
+Folder [stacks](samples/Assembly_out/stacks)
+* results of stacks runs
+
+Folder [reads_export](samples/Assembly_out/reads_export)
+* exported fasta files for assembly.
 

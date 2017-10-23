@@ -1,5 +1,62 @@
 #/bin/bash
 
+# Test requirements.
+# bc
+if [ ! `which bc 2>/dev/null` ];
+then
+	echo "Please install bc"
+	exit 1
+fi
+# perl Parallel::ForkManage
+perldoc Parallel::ForkManager >& /dev/null
+if [ $? != 0 ];
+then
+	echo "Please install Perl module Parallel::ForkManager."
+    echo "Run cpan install Parallel::ForkManager"
+	exit 1
+fi
+if [ ! `which ustacks 2>/dev/null` ];
+then
+	echo "ustacks does not exist!"
+	echo "Please download it at http://catchenlab.life.illinois.edu/stacks/"
+	exit 1
+fi
+if [ ! `which cstacks 2>/dev/null` ];
+then
+	echo "cstacks does not exist!"
+	echo "Please download it at http://catchenlab.life.illinois.edu/stacks/"
+	exit 1
+else
+	cstacks --version 2>/tmp/RADpipeline.log
+	v=`cut -d ' ' -f2 /tmp/RADpipeline.log`
+	if [ `echo "$v<1.45"|bc` -ne 0 ];
+	then
+		echo "You need to update stacks to 1.45 or later."
+		exit 1
+	fi
+fi
+if [ ! `which sstacks 2>/dev/null` ];
+then
+	echo "sstacks does not exist!"
+	echo "Please download it at http://catchenlab.life.illinois.edu/stacks/"
+	exit 1
+else
+	sstacks --version 2>/tmp/RADpipeline.log
+	v=`cut -d ' ' -f2 /tmp/RADpipeline.log`
+	if [ `echo "$v<1.45"|bc` -ne 0 ];
+	then
+		echo "You need to update stacks to 1.45 or later."
+		exit 1
+	fi
+fi
+if [ ! `which cap3 2>/dev/null` ];
+then
+echo "cap3 does not exist!"
+echo "Please download it at http://seq.cs.iastate.edu/cap3.html"
+exit 1
+fi
+
+# install.
 exepath="$HOME/bin/"
 
 if [ ! -d "$exepath" ];
@@ -14,7 +71,7 @@ chmod +x $exepath/RADassembler
 cp ~/.bashrc ~/.bashrc.bak
 echo -e "export PATH=$exepath:\$PATH" >> ~/.bashrc
 
-echo "Please run source ~/.bashrc first!"
+echo "Please run "source ~/.bashrc" first!"
 
 
 
