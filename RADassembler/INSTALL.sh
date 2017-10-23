@@ -71,7 +71,7 @@ chmod +x $exepath/RADassembler
 cp ~/.bashrc ~/.bashrc.bak
 echo -e "export PATH=$exepath:\$PATH" >> ~/.bashrc
 
-echo "Please run "source ~/.bashrc" first!"
+echo "Please run 'source ~/.bashrc' first!"
 
 
 
