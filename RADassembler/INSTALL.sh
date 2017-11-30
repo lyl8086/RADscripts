@@ -79,7 +79,7 @@ exit 1
 fi
 
 # install.
-exepath="$HOME/bin/"
+exepath="$HOME/bin"
 
 if [ ! -d "$exepath" ];
 then
