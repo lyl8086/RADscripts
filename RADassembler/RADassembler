@@ -57,37 +57,80 @@ do
 			exit 1
 			;;
 		?)
-			echo "unknown argument"
+            echo -e "\033[31m Unknown argument!\033[0m"
 			exit 1
 			;;
 	esac
 done
 ###### Functions ######
+iter=0
 function guess_fmt()
 {
 
-	f=`ls $1/*`
-	if [ ${f:0-6} == '.fq.gz' ];
-	then
-		ftyp='gzfastq'
-		suffix='fq.gz'
-	elif [ ${f:0-6} == '.fa.gz' ];
-	then
-		ftyp='gzfasta'
-		suffix='fa.gz'
-	elif [ ${f:0-3} == '.fq' ];
-	then
-		ftyp='fastq'
-		suffix='fq'
-	elif [ ${f:0-3} == '.fa' ];
-	then
-		ftyp='fasta'
-		suffix='fa'
-	else
-		echo 'unknown file format!'
-		exit 1
-	fi
+	if [ "$ftyp" == 'gzfastq' ];
+    then
+        suffix='fq.gz'
+    elif [ "$ftyp" == 'fastq' ];
+    then
+        suffix='fq'
+    elif [ "$ftyp" == 'fasta' ];
+    then
+        suffix='fa'
+    elif [ "$ftyp" == 'gzfasta' ];
+    then
+        suffix='fa.gz'
+    else
+        iter=1
+        f=`ls $1/$2*`
+        if [ ${f:0-6} == '.fq.gz' ];
+        then
+            ftyp='gzfastq'
+            suffix='fq.gz'
+        elif [ ${f:0-9} == '.fastq.gz' ];
+        then
+            ftyp='gzfastq'
+            suffix='fastq.gz'
+        elif [ ${f:0-6} == '.fa.gz' ];
+        then
+            ftyp='gzfasta'
+            suffix='fa.gz'
+        elif [ ${f:0-9} == '.fasta.gz' ];
+        then
+            ftyp='fasta'
+            suffix='fasta.gz'
+        elif [ ${f:0-3} == '.fq' ];
+        then
+            ftyp='fastq'
+            suffix='fq'
+        elif [ ${f:0-6} == '.fastq' ];
+        then
+            ftyp='fastq'
+            suffix='fastq'
+        elif [ ${f:0-3} == '.fa' ];
+        then
+            ftyp='fasta'
+            suffix='fa'
+        elif [ ${f:0-6} == '.fasta' ];
+        then
+            ftyp='fasta'
+            suffix='fasta'
+        else
+            echo -e "\033[47;31m Unknown file format! [$f]\033[0m"
+            echo -e "Quitting..."
+            exit 1
+        fi
+    fi
 
+}
+
+check_fmt() {
+    
+    if [ ! -f "$1/$2.$3" ];
+    then
+        ftyp=''
+        echo -e "\033[47;31m File format is not correct, I'm guessing...\033[0m"
+        guess_fmt $1 $2
+    fi
 }
 ########################
 
@@ -140,11 +183,11 @@ fi
 ############################
 
 ######Set environment ######
-cur_path=`which RADassembly`
-cur_path=${cur_path%"RADassembly"}
+cur_path=`which RADassembler`
+cur_path=${cur_path%"RADassembler"}
 chmod +x $cur_path/bin/*.pl
 export PATH=$cur_path/bin:$PATH
-echo "Your Path is:$PATH"
+#echo "Your Path is:$PATH"
 ################################
 
 ###### Default parameters ######
@@ -185,12 +228,16 @@ if [ -z "$minL" ];
 then
 	minL=3
 fi
+if [ -z "$threads" ];
+then
+    threads=1
+fi
 ######################################
 
 ###### Sort the reads by Stacks ######
 if [ -d "$out_path" ];
 then 
-	echo "Directory exists! Do you want to delete it ?!!!"
+	echo -e "\033[47;31m Directory exists! Do you want to delete it ?!!!\033[0m"
 	read con
 	if [ "$con" == 'y' ] || [ "$con" == 'yes' ];
 	then
@@ -204,23 +251,6 @@ fi
 
 mkdir -p $out_path/stacks
 mkdir -p $out_path/reads_export
-
-if [ -z "$ftyp" ];
-then
-	guess_fmt $in_path
-elif [ "$ftyp" == 'gzfastq' ];
-then
-	suffix='fq.gz'
-elif [ "$ftyp" == 'fastq' ];
-then
-	suffix='fq'
-elif [ "$ftyp" == 'fasta' ];
-then
-	suffix='fa'
-elif [ "$ftyp" == 'gzfasta' ];
-then
-	suffix='fa.gz'
-fi
 
 ###### Read PopMap ######
 declare -A pop
@@ -236,12 +266,21 @@ len=${#pop[@]}
 i=1
 echo "Running ustacks..."
 for indv in ${!pop[@]};
-do ustacks -t $ftyp -f $in_path/$indv.$suffix -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $i 2>&1 | tee -a $out_path/stacks/Ustacks.log
-let i+=1
+do
+    guess_fmt $in_path $indv
+    check_fmt $in_path $indv $suffix
+    #echo "ustacks -t $ftyp -f $in_path/$indv.$suffix -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $i 2>&1 | tee -a $out_path/stacks/Ustacks.log"
+    ustacks -t $ftyp -f $in_path/$indv.$suffix -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $i 2>&1 | tee -a $out_path/stacks/Ustacks.log
+    if [ $iter ] && [ $i -lt $len ];
+    then
+        ftyp=''
+    fi
+    let i+=1
 done
 tt=`grep 'ustacks is done.' $out_path/stacks/Ustacks.log`
 if [ -z "$tt" ];
 then
+    echo -e "\033[47;31m Ustacks error! Quitting...\033[0m"
 	exit 1
 fi
 #################################
