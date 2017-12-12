@@ -1,5 +1,5 @@
 #!/bin/bash
-
+shopt -s  expand_aliases 
 
 Usage='
     #############################################################
@@ -16,10 +16,11 @@ Usage='
     -M: minimum stacks dapth
     -m: mismatch for ustacks
     -n: mismatch for cstacks
+    -A: turn on assembly
     -D: minimum read depth of a locus to export for assembly
     -t: number of threads
 '
-while getopts "i:o:s:m:M:n:f:P:D:t:h" arg
+while getopts "i:o:s:m:M:n:f:P:D:t:hA" arg
 do
 	case $arg in
 		i)
@@ -56,6 +57,9 @@ do
 			echo "$Usage"
 			exit 1
 			;;
+        A)
+            asmb=1
+            ;;
 		?)
             echo -e "\033[31m Unknown argument!\033[0m"
 			exit 1
@@ -153,7 +157,7 @@ then
 	exit 1
 else
 	cstacks --version 2>/tmp/RADpipeline.log
-	v=`cut -d ' ' -f2 /tmp/RADpipeline.log`
+	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d 'a-zA-Z'`
 	if [ `echo "$v<1.45"|bc` -ne 0 ];
 	then
 		echo "You need to update stacks to 1.45 or later."
@@ -167,7 +171,7 @@ then
 	exit 1
 else
 	sstacks --version 2>/tmp/RADpipeline.log
-	v=`cut -d ' ' -f2 /tmp/RADpipeline.log`
+	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d 'a-zA-Z'`
 	if [ `echo "$v<1.45"|bc` -ne 0 ];
 	then
 		echo "You need to update stacks to 1.45 or later."
@@ -261,10 +265,12 @@ do
 	pop[$key]="$val"
 done < $map
 
-
+alias tcmd="date '+%A %D %X'"
 len=${#pop[@]}
 i=1
-echo "Running ustacks..."
+echo "======================================================"
+echo "  [`tcmd`] Running ustacks..."
+echo "======================================================"
 for indv in ${!pop[@]};
 do
     guess_fmt $in_path $indv
@@ -286,14 +292,18 @@ fi
 #################################
 
 ###### cstacks and sstacks ######
-echo "Running cstacks..."
+echo "======================================================"
+echo "  [`tcmd`] Running cstacks..."
+echo "======================================================"
 cstacks -b 1 -P $out_path/stacks/ -M $map -n $c_mis -p $threads 2>&1 | tee $out_path/stacks/Cstacks.log
 tt=`grep 'cstacks is done.' $out_path/stacks/Cstacks.log`
 if [ -z "$tt" ];
 then
 	exit 1
 fi
-echo "Running sstacks..."
+echo "======================================================"
+echo "  [`tcmd`] Running sstacks..."
+echo "======================================================"
 sstacks -b 1 -P $out_path/stacks/ -M $map -p $threads 2>&1 | tee $out_path/stacks/Sstacks.log
 tt=`grep 'sstacks is done.' $out_path/stacks/Sstacks.log`
 if [ -z "$tt" ];
@@ -303,11 +313,20 @@ fi
 ###############################
 
 ###### export read pairs ######
-echo "Exporting fasta files..."
+echo "======================================================"
+echo "  [`tcmd`] Exporting fasta files..."
+echo "======================================================"
 sort_read_pairs.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -m $minL -i ${ftyp#"gz"} 2>&1 | tee $out_path/stacks/export.log
 ##########################
 
 ###### run assembly ######
-echo "Run local assembly..."
-CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/batch_1.catalog.tags* -t $threads 
+if [ "$asmb" == 1 ];
+then
+    echo "======================================================"
+    echo "  [`tcmd`] Run local assembly..."
+    echo "======================================================"
+    CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/batch_1.catalog.tags* -t $threads
+fi
+
 echo "Done!"
+

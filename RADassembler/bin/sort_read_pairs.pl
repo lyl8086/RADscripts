@@ -200,25 +200,27 @@ sub load_stacks {
         chomp $line;
         @parts = split(/\t/, $line);
 
-        next if ($parts[6] eq "consensus" || $parts[6] eq "model");
+        next if ($parts[6] eq "consensus" || $parts[6] eq "model" || $parts[6] eq "secondary");
 
         #
         # Index by sequence ID -> stack ID
         #
-		if ($parts[8] =~ /(.+)?[\s+\|](.+)/) {
+		if ($parts[8] =~ /(.+)\s+(.+)$/) {
 			#
 			# Type I: 
 			# HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
 			#
-			# Type II:
-			# CTACAG_8_1103_15496_190439_1|1
-			#
+			
 			$stacks->{$1} = $parts[2];
-		} elsif ($parts[8] =~ /(.+)_[12]$/) {
+		} elsif ($parts[8] =~ /(.+)[12]$/) {
+            # Type II:
+			# CTACAG_8_1103_15496_190439_1|1
 			#
 			# Type III:
 			# 4_1101_13393_1801_1
-			#
+			# 4_1101_13393_1801/1
+            # ...
+            # print $1, "\n";
 			$stacks->{$1} = $parts[2];
 		} else {
 			$stacks->{$parts[8]} = $parts[2];
@@ -258,23 +260,24 @@ sub process_fastq_read_pairs {
 	#
 	#
 	#
-	if ($line =~ /(.+)?[\s+\|](.+)/) {
+	if ($line =~ /@(.+)\s+(.+)$/) {
 		#
 		# Type I: 
 		# HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
 		#
-		# Type II:
+		$read_id = $1;	  #Modified
+		$read_dd = $line; #Original read id.
+	} elsif ($line =~ /@(.+)[12]$/) {
+        # Type II:
 		# CTACAG_8_1103_15496_190439_1|1
-		#
-		$read_id = substr($1, 1);	#Modified
-		$read_dd = substr($line, 1); #Original read id.
-	} elsif ($line =~ /(.+)_[12]$/) {
 		#
 		# Type III:
 		# 4_1101_13393_1801_1
-		#
-		$read_id = substr($1, 1);
-		$read_dd = substr($line, 1);
+        # 4_1101_13393_1801/1
+		# ...
+        # print $1, "\n";
+		$read_id = $1;
+		$read_dd = $line;
 	} else {
 		$read_id = substr($1, 1);
 		$read_dd = substr($line, 1);
@@ -283,7 +286,7 @@ sub process_fastq_read_pairs {
 	#
 	#
 	
-	$seq     = <$in_fh>;
+	$seq = <$in_fh>;
 	chomp $seq;
 
 	#
@@ -334,23 +337,23 @@ sub process_fasta_read_pairs {
     #
 	#
 	#
-	if ($line =~ /(.+)?[\s+\|](.+)/) {
+	if ($line =~ /@(.+)\s+(.+)$/) {
 		#
 		# Type I: 
 		# HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
 		#
-		# Type II:
+		$read_id = $1;	  #Modified
+		$read_dd = $line; #Original read id.
+	} elsif ($line =~ /@(.+)[12]$/) {
+        # Type II:
 		# CTACAG_8_1103_15496_190439_1|1
 		#
-		$read_id = substr($1, 1);	#Modified
-		$read_dd = substr($line, 1); #Original read id.
-	} elsif ($line =~ /(.+)_[12]$/) {
 		#
 		# Type III:
 		# 4_1101_13393_1801_1
 		#
-		$read_id = substr($1, 1);
-		$read_dd = substr($line, 1);
+		$read_id = $1;
+		$read_dd = $line;
 	} else {
 		$read_id = substr($1, 1);
 		$read_dd = substr($line, 1);
@@ -358,7 +361,7 @@ sub process_fasta_read_pairs {
 	#
 	#
 	#
-	$seq     = <$in_fh>;
+	$seq = <$in_fh>;
 	chomp $seq;
 
         $key = $stacks->{$in_file->{'prefix'}}->{$read_id};

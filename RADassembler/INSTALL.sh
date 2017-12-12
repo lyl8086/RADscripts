@@ -26,7 +26,7 @@ then
 fi
 
 # perl Parallel::ForkManage
-perldoc Parallel::ForkManager >& /dev/null
+perl -le "use Parallel::ForkManager" >& /dev/null
 if [ $? != 0 ];
 then
 	echo "Please install Perl module Parallel::ForkManager."
@@ -37,18 +37,18 @@ fi
 # stacks.
 if [ ! `which ustacks 2>/dev/null` ];
 then
-	echo "ustacks does not exist!"
-	echo "Please download it at http://catchenlab.life.illinois.edu/stacks/"
+	echo "ustacks is not installed!"
+	echo "Please download and install it, see http://catchenlab.life.illinois.edu/stacks/"
 	exit 1
 fi
 if [ ! `which cstacks 2>/dev/null` ];
 then
-	echo "cstacks does not exist!"
-	echo "Please download it at http://catchenlab.life.illinois.edu/stacks/"
+	echo "cstacks is not installed!"
+	echo "Please download and install it, see http://catchenlab.life.illinois.edu/stacks/"
 	exit 1
 else
 	cstacks --version 2>/tmp/RADpipeline.log
-	v=`cut -d ' ' -f2 /tmp/RADpipeline.log`
+	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d "a-zA-Z"`
 	if [ `echo "$v<1.45"|bc` -ne 0 ];
 	then
 		echo "You need to update stacks to 1.45 or later."
@@ -57,12 +57,12 @@ else
 fi
 if [ ! `which sstacks 2>/dev/null` ];
 then
-	echo "sstacks does not exist!"
-	echo "Please download it at http://catchenlab.life.illinois.edu/stacks/"
+	echo "sstacks is not installed!"
+	echo "Please download and install it, see http://catchenlab.life.illinois.edu/stacks/"
 	exit 1
 else
 	sstacks --version 2>/tmp/RADpipeline.log
-	v=`cut -d ' ' -f2 /tmp/RADpipeline.log`
+	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d "a-zA-Z"`
 	if [ `echo "$v<1.45"|bc` -ne 0 ];
 	then
 		echo "You need to update stacks to 1.45 or later."
@@ -73,8 +73,8 @@ fi
 # cap3
 if [ ! `which cap3 2>/dev/null` ];
 then
-echo "cap3 does not exist!"
-echo "Please download it at http://seq.cs.iastate.edu/cap3.html"
+echo "cap3 is not installed!"
+echo "Please download and install it, see http://seq.cs.iastate.edu/cap3.html"
 exit 1
 fi
 

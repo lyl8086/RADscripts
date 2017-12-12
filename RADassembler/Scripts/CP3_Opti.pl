@@ -4,7 +4,7 @@ use strict;
 use warnings; 
 use Parallel::ForkManager;
 use Getopt::Long;
-
+use constant V => 171211;
 
 my (@files, $file, $out_fh, $in_fh, $in_tags, $sub_lst);
 my $in_path;
@@ -114,7 +114,7 @@ foreach $file (@files){
 	$thread_m->start and next;
 	
 	run_assembly($file, $in_path, "$out_path/assembly_1st", 1, $cmd);
-	print STDERR "Assembling locus $i; run $i of $total        \r";
+	print STDERR "Assembling locus $i of $total \r";
 	
 	$thread_m->finish;
 	
@@ -190,7 +190,7 @@ sub parse_fasta {
 	
 	open ($out_fh, ">$out_fa/$name_fa") or die "$!";
 	
-	foreach $file (@files) {
+	foreach $file (@$files) {
 		open ($in_fh, "<$in_fa/$file") or die "$!";
 		while (<$in_fh>) {
 		
@@ -215,15 +215,23 @@ sub run_assembly {
 	my ($file, $in_path, $out_path, $run, $cmd) = @_;
 	
 	`cap3 $in_path/$file $cmd 1>/dev/null 2>>$out_path/error.log`; #Changed, maybe some bugs here.
-	unless (-z "$in_path/$file.cap.contigs") {
-		
+	if (!-z "$in_path/$file.cap.contigs") {
+		# reads are assembled.
 		`mv $in_path/$file.cap.contigs $out_path/$file`;
-		
-	}
-	`rm -rf $in_path/$file.cap.*`;
-	
-	
-	if ($run ==1) {
+        
+        if ($run == 2) {
+            my $read1 = `grep '_Consensus' $in_path/$file.cap.singlets`;
+            if ($read1) {
+                # read1 is not assembled, link it.
+                `cat $in_path/$file.cap.singlets >> $out_path/$file`;
+                link_fasta($out_path, $out_path, $file);
+            }
+		}
+	} elsif ($run == 2) {
+        # connect read1 and contig of read2 by 10xN.
+        link_fasta($in_path, $out_path, $file);
+    }
+	if ($run == 1) {
 		my $locus = substr($file, 0, -3);
 		my $seq = $seqs{$locus};
 		open (my $out_fh, ">>$out_path/$file");
@@ -232,10 +240,9 @@ sub run_assembly {
 		
 		close $out_fh;
 	}
-	
-	
-	
-	
+        
+	my $cm = "rm -rf $in_path/$file.cap.ace $in_path/$file.cap.links $in_path/$file.cap.qual $in_path/$file.cap.info $in_path/$file.cap.singlets";
+    `$cm`;
 	
 }
 
@@ -261,4 +268,48 @@ sub get_flist {
 	return @files;
 	close $out_list;
 	close D;
+}
+
+sub link_fasta {
+    my ($in_path, $out_path, $file) = @_;
+    open(IN, "$in_path/$file") or die "$!";
+    my ($ctg, $seq, $read1, $num);
+    my $buf  = "";
+    my $plen = 0;
+    my $id   = "";
+    while(<IN>) {
+        chomp;
+        $_ =~ s/\r//g;
+        if (/^>/) {
+            my $len = length($buf);
+            if($id =~ /Consensus/) {
+                $read1 = $buf; # read1 consensus.
+            } elsif ($len > $plen) {
+                $ctg   = $buf; # longest contig.
+                $plen  = $len;
+            }
+            $buf = "";
+            $id = $_;
+            $num++;
+        } else {
+            $buf .= $_;
+        }
+    }
+    if($id =~ /Consensus/) {
+        $read1 = $buf; # read1 consensus.
+    } elsif (length($buf) > $plen) {
+        $ctg   = $buf; # longest contig.
+    }
+    close IN;
+    
+    if ($num == 1) {
+        $seq = $buf;
+    } else {
+        $id = '>Contig1_10N_read1';
+        $seq = $ctg . 'N'x10 . $read1;
+    }
+    open (my $out_fh, ">$out_path/$file");
+    print $out_fh $id, "\n",
+    $seq, "\n";
+    close $out_fh;
 }
