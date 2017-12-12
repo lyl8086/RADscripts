@@ -16,7 +16,7 @@ PREREQUISITES
 How to Install
 ---
 ```
-# sh INSTALL.sh
+# bash INSTALL.sh
 ```
 How to Run
 ---
@@ -30,10 +30,10 @@ Usage:
   -s paired-end path. Paired-end reads, read2. e.g. (indiv name_[12]).fq[fa][.gz]
   -f input file type. "fasta", "fastq", "gzfastq", "gzfasta"
   -P PopMaP file
-  -M minimum stacks dapth
+  -M minimum stacks depth
+  -D minimum read depth of a locus to export for assembly, can be [lower:upper]
   -m mismatch for ustacks
   -n mismatch for cstacks
-  -D minimum read depth of a locus to export for assembly
   -t number of threads
 ```
 <b>see</b> [samples](samples) for an example run.
