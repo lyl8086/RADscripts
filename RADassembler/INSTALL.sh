@@ -25,15 +25,21 @@ then
 	exit 1
 fi
 
-# perl Parallel::ForkManage
+# perl modules
 perl -le "use Parallel::ForkManager" >& /dev/null
 if [ $? != 0 ];
 then
 	echo "Please install Perl module Parallel::ForkManager."
-    echo "Run cpan install Parallel::ForkManager"
+    echo "Run (sudo) cpan install Parallel::ForkManager"
 	exit 1
 fi
-
+perl -le "use Array::Shuffle" >& /dev/null
+if [ $? != 0 ];
+then
+	echo "Please install Perl module Array::Shuffle."
+    echo "Run (sudo) cpan install Array::Shuffle"
+	exit 1
+fi
 # stacks.
 if [ ! `which ustacks 2>/dev/null` ];
 then
@@ -77,7 +83,11 @@ echo "cap3 is not installed!"
 echo "Please download and install it, see http://seq.cs.iastate.edu/cap3.html"
 exit 1
 fi
-
+if [ ! `which gnuplot 2>/dev/null` ];
+then
+echo "please install gnuplot!"
+exit 1
+fi
 # install.
 exepath="$HOME/bin"
 

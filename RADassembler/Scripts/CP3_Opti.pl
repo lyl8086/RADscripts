@@ -140,6 +140,7 @@ if (! -e "$out_path/assembly_2nd") {
 
 get_flist("$out_path/assembly_1st/", $out_path, "reads_2nd", "fa");
 
+$thread_m = new Parallel::ForkManager($num_threads*2); # the second run could be 2X faster.
 foreach $file (@files){
 	
 	
@@ -195,7 +196,8 @@ sub parse_fasta {
 		while (<$in_fh>) {
 		
 		chomp if /Consensus/;
-		$_ =~ s/^>/>$file\./;
+		my $locus = substr($file, 0, -3);
+		$_ =~ s/^>/>$locus\./;
 		print $out_fh $_;
 		
 		}
@@ -220,10 +222,10 @@ sub run_assembly {
 		`mv $in_path/$file.cap.contigs $out_path/$file`;
         
         if ($run == 2) {
-            my $read1 = `grep '_Consensus' $in_path/$file.cap.singlets`;
+            my $read1 = `grep -A1 '_Consensus' $in_path/$file.cap.singlets`;
             if ($read1) {
                 # read1 is not assembled, link it.
-                `cat $in_path/$file.cap.singlets >> $out_path/$file`;
+                `echo $read1 >> $out_path/$file`;
                 link_fasta($out_path, $out_path, $file);
             }
 		}
@@ -305,7 +307,7 @@ sub link_fasta {
     if ($num == 1) {
         $seq = $buf;
     } else {
-        $id = '>Contig1_10N_read1';
+        $id = '>ctg_10N_rd1';
         $seq = $ctg . 'N'x10 . $read1;
     }
     open (my $out_fh, ">$out_path/$file");

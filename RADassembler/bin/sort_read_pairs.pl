@@ -25,12 +25,12 @@
 # By Julian Catchen <jcatchen@illinois.edu>
 #
 #
-# Modified by Yulong Li
+# Modified by Yulong Li, new version
 #
 
 use strict;
 use constant stacks_version => "1.32.2";
-use List::Util 'shuffle';
+use Array::Shuffle 'shuffle_array'; # faster.
 use constant true  => 1;
 use constant false => 0;
 
@@ -44,8 +44,11 @@ my $out_type       = "fasta";
 my $in_type        = "fastq";
 my $gzipped        = false;
 my $depth;
+my $mincov;
 parse_command_line();
-
+if (!-d $out_path) {
+	mkdir $out_path;
+}
 my (@files, %matches, %stacks, %reads, %marker_wl);
 
 build_file_list(\@files);
@@ -85,8 +88,9 @@ print STDERR
 #
 # Check if files already exist, if so, exit to prevent adding data to existing files.
 #
+# not needed.
 my ($cat_id, $path);
-
+=cut
 foreach $cat_id (keys %matches) {
     #
     # Check that this catalog ID only has a single match from each sample.
@@ -101,7 +105,7 @@ foreach $cat_id (keys %matches) {
 	    "they already exist. Please delete these files and re-execute sort_read_pairs.pl.\n");
     }
 }
-
+=cut
 $i = 1;
 foreach $file (@files) {
     printf(STDERR "Processing file % 2s of % 2s [%s]\n", $i, $num_files, $file->{'prefix'});
@@ -260,27 +264,27 @@ sub process_fastq_read_pairs {
 	#
 	#
 	#
-	if ($line =~ /@(.+)\s+(.+)$/) {
+	if ($line =~ /^@(.+)\s+(.+)$/) {
 		#
 		# Type I: 
-		# HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
+		# @HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
 		#
 		$read_id = $1;	  #Modified
 		$read_dd = $line; #Original read id.
-	} elsif ($line =~ /@(.+)[12]$/) {
+	} elsif ($line =~ /^@(.+)[12]$/) {
         # Type II:
-		# CTACAG_8_1103_15496_190439_1|1
+		# @CTACAG_8_1103_15496_190439_1|1
 		#
 		# Type III:
-		# 4_1101_13393_1801_1
-        # 4_1101_13393_1801/1
+		# @4_1101_13393_1801_1
+        # @4_1101_13393_1801/1
 		# ...
         # print $1, "\n";
 		$read_id = $1;
 		$read_dd = $line;
 	} else {
 		$read_id = substr($1, 1);
-		$read_dd = substr($line, 1);
+		$read_dd = $read_id;
 	}
 	#
 	#
@@ -296,15 +300,15 @@ sub process_fastq_read_pairs {
 	$qual = <$in_fh>;
 	chomp $qual;
 
-        $key = $stacks->{$in_file->{'prefix'}}->{$read_id};
+    $key = $stacks->{$in_file->{'prefix'}}->{$read_id};
 
-        next if (!defined($key));
+    next if (!defined($key));
 
-        if (!defined($reads->{$key})) {
-            $reads->{$key} = [];
-        }
+    if (!defined($reads->{$key})) {
+        $reads->{$key} = [];
+    }
 
-        push(@{$reads->{$key}}, {'id' => $read_dd, 'seq' => $seq, 'qual' => $qual}); #
+    push(@{$reads->{$key}}, {'id' => $read_dd, 'seq' => $seq, 'qual' => $qual}); #
     }
 }
 
@@ -337,26 +341,26 @@ sub process_fasta_read_pairs {
     #
 	#
 	#
-	if ($line =~ /@(.+)\s+(.+)$/) {
+	if ($line =~ /^>(.+)\s+(.+)$/) {
 		#
 		# Type I: 
-		# HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
+		# >HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
 		#
 		$read_id = $1;	  #Modified
 		$read_dd = $line; #Original read id.
-	} elsif ($line =~ /@(.+)[12]$/) {
+	} elsif ($line =~ /^>(.+)[12]$/) {
         # Type II:
-		# CTACAG_8_1103_15496_190439_1|1
+		# >CTACAG_8_1103_15496_190439_1|1
 		#
 		#
 		# Type III:
-		# 4_1101_13393_1801_1
+		# >4_1101_13393_1801_1
 		#
 		$read_id = $1;
 		$read_dd = $line;
 	} else {
 		$read_id = substr($1, 1);
-		$read_dd = substr($line, 1);
+		$read_dd = $read_id;
 	}
 	#
 	#
@@ -388,7 +392,8 @@ sub print_results {
 		$mindepth = $depth;
 		$maxdepth = 0;
 	}
-
+	my $tot = 0; # total num of loci.
+    my $tod = 0; # total depth.
     # 
     # If a catalog ID matches stacks from multiple samples, print them out together.
     #
@@ -399,57 +404,60 @@ sub print_results {
         next if (defined($multiple_matches->{$cat_id}));
 		
 		my $cnt = 0; # Depth for a loci(single-end).
-		my $sam = 0; # Number of samples for a loci.
+		my $sam = scalar (keys %{$matches->{$cat_id}}); # sample num for a locus.
 		my @out_seq; # Array holds output seqs for a catalog loci.
 		
+        next if $mincov && $sam < $mincov;
 		if ($mindepth) {
 			#
 			# a minimum depth for paired-end required...
-			# if read pairs please divide by 2.
+			# 
 			#
 			if ($maxdepth) {
 				#
 				# randomly downscale to the maximum depth 
-				#
+				# only applicable to single-end
+                #
 				foreach my $key (keys %{$matches->{$cat_id}}) {
 					
 					($sample, $stack_id) = split(/\|/, $key);
-					$sam++;
 					
 					foreach $read (@{$reads->{$sample}->{$stack_id}}) {
 						
 						$cnt++;
-						
+						my $out = '';
 						if ($out_type eq "fasta") {
-							my $out .= ">". $cat_id. "|". $sample. "|". $stack_id. "|". $read->{'id'}. "\n";
-							   $out .= $read->{'seq'} . "\n";
-							push @out_seq, $out;
+							$out .= ">". $cat_id. "|". $sample. "|". $stack_id. "|". $read->{'id'}. "\n";
+							$out .= $read->{'seq'} . "\n";
 						} else {
-							my $out .= "@". $cat_id. "|". $sample. "|". $stack_id. "|". $read->{'id'}. "\n";
-							   $out .= $read->{'seq'}. "\n";
-							   $out .= "+\n";
-							   $out .= $read->{'qual'}. "\n";
-							push @out_seq, $out;
+							$out .= "@". $cat_id. "|". $sample. "|". $stack_id. "|". $read->{'id'}. "\n";
+							$out .= $read->{'seq'}. "\n";
+							$out .= "+\n";
+							$out .= $read->{'qual'}. "\n";
 						}
+						push @out_seq, $out;
 					}
 				}
 				next if $cnt < $mindepth;
+                $tot++;
 				$path  = $out_path . "/" . $cat_id;
 				$path .= $out_type eq "fasta" ? ".fa" : ".fq";
-				open($out_fh, ">$path") or die("Unable to open $path; '$!'\n");
+				open($out_fh, ">$path") or die("Unable to open $path; '$!'\n"); # all samples together.
 					
 				if ($cnt > $maxdepth) {
-					my @out = shuffle @out_seq;
-					map {print $out_fh $_} @out[1..$maxdepth];
+					shuffle_array @out_seq; # need rewrite here.
+					map {print $out_fh $_} @out_seq[1..$maxdepth];
 					close $out_fh;
+					undef @out_seq;
+                    $tod += $maxdepth;
 					next;
 				} else {
 					map {print $out_fh $_} @out_seq;
 					close $out_fh;
+					undef @out_seq;
+                    $tod += $cnt;
 					next;
 				}
-				
-				close $out_fh;
 				
 			} else {
 				foreach my $key (keys %{$matches->{$cat_id}}) {
@@ -459,14 +467,14 @@ sub print_results {
 				next if $cnt < $mindepth;
 			}
 		}
-		
+		$tot++;
 		$path  = $out_path . "/" . $cat_id;
 		$path .= $out_type eq "fasta" ? ".fa" : ".fq";
-        open($out_fh, ">>$path") or die("Unable to open $path; '$!'\n");	
+        open($out_fh, ">>$path") or die("Unable to open $path; '$!'\n"); #single sample.	
         foreach $key (keys %{$matches->{$cat_id}}) {
 				
 			($sample, $stack_id) = split(/\|/, $key);
-
+            $tod += scalar(@{$reads->{$sample}->{$stack_id}}); # read depth if no threshold is set.
             foreach $read (@{$reads->{$sample}->{$stack_id}}) {
 				if ($out_type eq "fasta") {
 					print $out_fh
@@ -484,6 +492,7 @@ sub print_results {
 
         close($out_fh);
     }
+    print STDERR "\nA total of $tot loci were exported, with a mean depth of ". sprintf "%.2f.\n", $tod/$tot;
 }
 
 sub check_mult_catalog_matches {
@@ -618,6 +627,7 @@ sub parse_command_line {
 	elsif ($_ =~ /^-w$/) { $cat_white_list = shift @ARGV; }
 	elsif ($_ =~ /^-d$/) { $debug++; }
 	elsif ($_ =~ /^-m$/) { $depth      = shift @ARGV; }
+	elsif ($_ =~ /^-c$/) { $mincov     = shift @ARGV; }
 	elsif ($_ =~ /^-v$/) { version(); exit(); }
 	elsif ($_ =~ /^-h$/) { usage(); }
 	else {
@@ -672,6 +682,7 @@ sort_read_pairs.pl -p path -s path -o path [-t type] [-W white_list] [-w white_l
     t: output type, either 'fasta' (default) or 'fastq'.
     m: minimum depth for a locus (can also be mindepth:maxdepth, say 10:400, the minimum depth is 10, and
     the reads of a locus will also be randomly downscale to the maxdepth 400).
+    c: coverage (num of individuals) for a locus
     W: a white list of files to process in the input path.
     w: a white list of catalog IDs to include.
     h: display this help message.
