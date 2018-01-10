@@ -18,14 +18,15 @@ Usage='
         can be [lower:upper].
     -m: mismatch for ustacks.
     -n: mismatch for cstacks.
+    -g: perform gapped assembly in stacks, 1 for ustacks, 2 for cstacks, 3 for all.
     -c: individual coverage for a locus.
     -A: turn off assembly.
-    -R: run a single component.
+    -R: run a single component, accept "ustacks", "cstacks", "assembly".
     -t: number of threads.
     chooseM: Similarity threshold selection within individual [ustacks].
     chooseN: Similarity threshold selection across individuals [cstacks].
 '
-while getopts "i:o:s:m:M:n:f:P:D:t:R:c:hA" arg
+while getopts "i:o:s:m:M:n:f:P:D:t:R:c:g:hA" arg
 do
 	case $arg in
 		i)
@@ -49,6 +50,27 @@ do
 		n)
 			c_mis=$OPTARG       #mismatch for cstacks.
 			;;
+        g)
+            gap=$OPTARG
+            case $gap in
+                1)
+                    ugap='--gapped'
+                    cgap=''
+                    ;;
+                2)
+                    ugap=''
+                    cgap='--gapped'
+                    ;;
+                3)
+                    ugap='--gapped'
+                    cgap='--gapped'
+                    ;;
+                ?)
+                    ugap=''
+                    cgap=''
+                    ;;
+            esac
+            ;;
 		P)
 			map=$OPTARG         #PopMap file								
 			;;
@@ -79,6 +101,14 @@ do
 done
 
 ###### Functions ######
+function goto
+{
+    label=$1
+    cmd=$(sed -n "/#$label:/{:a;n;p;ba};" $0)
+    eval "$cmd"
+    exit
+}
+
 iter=0
 function guess_fmt()
 {
@@ -208,14 +238,14 @@ set title "$mlab"
 set xlabel "$xlab"
 set ylabel "$ylab"
 plot $p
-set terminal pdfcairo noenhanced 
+set terminal pdf noenhanced
 set key inside
-set output "$name.pdf"
+set output "$out/$name.pdf"
 $autoleg
 set yrange [$min2:$max2]
 replot
 set terminal png noenhanced 
-set output "$name.png"
+set output "$out/$name.png"
 replot
 EOF
 }
@@ -226,8 +256,9 @@ chooseM() {
 	local mis=$3
 	local threads=$4
 	local minDP=$5
-	local flag=$6
-	local yrange=$7
+    local gap=$6
+	local flag=$7
+	local yrange=$8
     local name=${file#*/}
     local name=${name%.f*} # remove suffix f[ast][aq][.gz], may be bugs here.
     
@@ -236,23 +267,26 @@ chooseM() {
 		echo
 		echo
 		echo -e "\tSimilarity threshold selection for ustacks within individual\n"
-		echo -e "\tUsage: RADassembler chooseM [infile] [outpath] [max mismatch] [threads] [minDP] [replot] [yrange]"
+		echo -e "\tUsage: RADassembler chooseM [infile] [outpath] [max mismatch] [threads] [minDP] [gapped] [replot] [yrange]"
 		echo
 		echo
 		exit 1
 	fi
 
-	if [ ! -d $out ];
-	then
-		mkdir $out
-	fi
+	if [ ! -d $out ]; then mkdir $out; fi
+    if [ "$gap" == 1 ];
+    then
+        gap='--gapped'
+    else
+        gap=''
+    fi
+    
 	if [ -z "$flag" ];
 	then
 		echo -e "mismatch\t1_allele\t2_alleles\t>=3_alleles" >$out/ustacks.stat
 		for m in `seq 1 $mis`;
 		do
-		# We will keep everything.
-			ustacks -f $file -o $out -p $threads -M $m -m $minDP -d -N 0 -H -i 1 2>&1 | tee -a $out/Ustacks.$m.log
+			ustacks -f $file -o $out -p $threads -M $m -m $minDP -d -N 0 -H -i 1 $gap 2>&1 | tee -a $out/Ustacks.$m.log
 			nloci=`zcat $out/$name*.models.tsv.gz |tail -1 |cut -f3`
 			zcat $out/$name*.alleles.tsv.gz |grep -v '^#' |cut -f3 |sort|uniq -c |awk -v n=$nloci -v m=$m '{if($1==2){a++;} else if($1>2){b++;}} END {print m"\t"n-a-b"\t"a"\t"b;}' >>$out/ustacks.stat
 		done
@@ -270,8 +304,9 @@ chooseN() {
 	local map=$3
 	local max=$4
 	local threads=$5
-	local flag=$6                           # flag for replot.
-	local yrange=$7                         # 
+    local gap=$6
+	local flag=$7                           # flag for replot.
+	local yrange=$8                         # 
 
 	tmp=''
 	plot=''
@@ -280,15 +315,20 @@ chooseN() {
 		echo
 		echo
 		echo -e "\tSimilarity threshold selection for cstacks across individuals\n"
-		echo -e "\tUsage: RADassembler chooseN [inpath] [outpath] [popmap] [max mismatch] [threads] [replot] [yrange]"
+		echo -e "\tUsage: RADassembler chooseN [inpath] [outpath] [popmap] [max mismatch] [threads] [gapped] [replot] [yrange]"
 		echo
 		echo
 		exit 1
 	fi
-	if [ ! -d $out ];
-	then
-		mkdir $out
-	fi
+	
+    if [ ! -d $out ]; then mkdir $out; fi
+    if [ "$gap" == 1 ];
+    then
+        gap='--gapped'
+    else
+        gap=''
+    fi
+    
 	if [ -z "$flag" ];
 	then
 		##sort the individuals according to the num of loci.
@@ -314,7 +354,7 @@ chooseN() {
 		: >$out/catalog.num
 		for m in `seq 1 $max`;
 		do
-			cstacks -b $m -n $m -o $out -p $threads $samp 2>&1 | tee $out/Cstacks.$m.log
+			cstacks -b $m -n $m -o $out $gap -p $threads $samp 2>&1 | tee $out/Cstacks.$m.log #gapped
 			echo "mismatch=$m" >$out/$m
 			grep "newly added" $out/Cstacks.$m.log |awk '{print $1}' >>$out/$m
 			zcat $out/batch_$m.catalog.tags.tsv.gz | tail -1 |cut -f3 >>$out/catalog.num
@@ -348,7 +388,8 @@ function run_ustacks() {
     do
     guess_fmt $in_path $indv
     check_fmt $in_path $indv $suffix
-    ustacks -t $ftyp -f $in_path/$indv.$suffix -H -N 0 -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $i 2>&1 | tee -a $out_path/stacks/Ustacks.log
+    # disable haplotype from secondly reads.
+    ustacks -t $ftyp -f $in_path/$indv.$suffix -H -N 0 $ugap -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $i 2>&1 | tee -a $out_path/stacks/Ustacks.log
     if [ $iter ] && [ $i -lt $len ];
     then
         ftyp=''
@@ -371,7 +412,7 @@ function run_cstacks() {
     local map=$5
     local threads=$6
 
-    cstacks -b $batch -P $in_path -M $map -n $c_mis -p $threads 2>&1 | tee $out_path/Cstacks.log
+    cstacks -b $batch -P $in_path -M $map -n $c_mis $cgap -p $threads 2>&1 | tee $out_path/Cstacks.log
     tt=`grep 'cstacks is done.' $out_path/Cstacks.log`
     if [ -z "$tt" ];
     then
@@ -436,12 +477,12 @@ export PATH=$cur_path/bin:$PATH
 ###### select similarity threshold ######
 if [ "$1" = 'chooseN' ];
 then
-	chooseN $2 $3 $4 $5 $6 $7 $8
+	chooseN $2 $3 $4 $5 $6 $7 $8 $9
 	exit 1
 fi
 if [ "$1" = 'chooseM' ]; 
 then
-	chooseM $2 $3 $4 $5 $6 $7 $8
+	chooseM $2 $3 $4 $5 $6 $7 $8 $9
 	exit 1
 fi
 
@@ -505,6 +546,14 @@ then
 else
     cov="-c $cov"
 fi
+###### Continue to assembly ######
+if [ "$run_flg" == 'assembly' ];
+then
+    echo "Continue to run assembly..."
+    t1=$(date +%s)
+    goto assembly
+fi 
+
 ######################################
 if [ -d "$out_path" ];
 then 
@@ -514,6 +563,9 @@ then
 	then
 		echo "Deleting $out_path..."
 		rm -rf $out_path
+    elif [ "$con" == 'r' ];
+    then
+        echo "Continue anyway..."
 	else
 		echo "Directory exists, Please rename it!"
 		exit 1;
@@ -538,7 +590,7 @@ then
     run_cstacks $in_path $out_path $c_mis 1 $map $threads
     echo "Single run of cstacks is done."
     exit 1
-fi    
+fi   
 #########################
 ###### Parameters ######
 par="
@@ -574,6 +626,9 @@ echo "  [`tcmd`] Running cstacks..."
 echo "======================================================"
 run_cstacks $out_path/stacks $out_path/stacks $c_mis 1 $map $threads
 running_time cstacks
+
+###### Continue to run assembly by flag ######
+#assembly:
 echo "======================================================"
 echo "  [`tcmd`] Running sstacks..."
 echo "======================================================"

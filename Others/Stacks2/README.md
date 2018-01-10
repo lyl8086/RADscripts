@@ -4,21 +4,21 @@ modifications (experimental features):
 
 1. support more fastq header formats [tsv2bam].
 
-* type I: end with 1 or 2 seperated by a delimator (|, / or _).
+ * type I: end with 1 or 2 seperated by a delimator (|, / or _).
  
-e.g. `<b>@4_1101_13393_18/1</b>`
+   e.g. `@4_1101_13393_18/1`
 
-* type II: seperated by space, containing index informations. 
+ * type II: seperated by space, containing index informations. 
 
-e.g. `<b>@HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT</b>`
+   e.g. `@HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT`
 
 2. support the minimum depth (`-m`) option [populations].
 
-* apply the filter on each SNP for each loci of each sample.
+ * apply the filter on each SNP for each loci of each sample.
 
-if all the GT of a sample for a loci are missing, delete it.
+   if all the GT of a sample for a loci are missing, delete it.
  
-* likelihood filter (`-c`) added [populations].
+ * likelihood filter (`-c`) added [populations].
 
 3. other minor bugs.
 

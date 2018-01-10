@@ -31,9 +31,9 @@ important:
 # RADassembler
 
 Usage:
-    -i: input path. Clean reads containing enzyme site, read1? 
+    -i: input path. Clean reads containing enzyme site, read1?
         e.g. (individual name).fq[fa][.gz].
-    -o: out path. 
+    -o: out path.
     -s: paired-end path. Paired-end reads, read2?
         e.g. (individual name_[12]).fq[fa][.gz].
     -f: input file type. "fasta", "fastq", "gzfastq", "gzfasta".
@@ -43,9 +43,10 @@ Usage:
         can be [lower:upper].
     -m: mismatch for ustacks.
     -n: mismatch for cstacks.
+    -g: perform gapped assembly in stacks, 1 for ustacks, 2 for cstacks, 3 for all.
     -c: individual coverage for a locus.
     -A: turn off assembly.
-    -R: run a single component.
+    -R: run a single component, accept "ustacks", "cstacks", "assembly".
     -t: number of threads.
     chooseM: Similarity threshold selection within individual [ustacks].
     chooseN: Similarity threshold selection across individuals [cstacks].
@@ -54,11 +55,11 @@ How to select similarity thresholds within and across individuals
 ---
 * within individual [ustacks]
 ```
-Usage: RADassembler chooseM [infile] [outpath] [max mismatch] [threads] [minDP] [replot] [yrange]
+Usage: RADassembler chooseM [infile] [outpath] [max mismatch] [threads] [minDP] [gapped] [replot] [yrange]
 ```
 * across individuals[cstacks]
 ```
-Usage: RADassembler chooseN [inpath] [outpath] [popmap] [max mismatch] [threads] [replot] [yrange]
+Usage: RADassembler chooseN [inpath] [outpath] [popmap] [max mismatch] [threads] [gapped] [replot] [yrange]
 ```
 <b>see</b> [samples](samples) for an example run.
 

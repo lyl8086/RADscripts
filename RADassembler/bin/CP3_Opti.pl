@@ -50,6 +50,9 @@ if (! -e "$out_path/assembly_1st") {
 	`mkdir -p $out_path/assembly_1st`;
 	`mkdir -p $out_path/log`
 	
+} else {
+    print STDERR "Out path exists, we will delete fasta files if any...\n";
+    `find $out_path/assembly_1st/ -name "*.fa" | xargs rm -rf`;
 }
 
 ##delete any tmp files;
@@ -115,13 +118,13 @@ unless ($sec_asmb) {
 	
 		$i++;
 		$thread_m->start and next;
-		run_assembly($file, $in_path, "$out_path/assembly_1st", 1, $cmd);
+	
+        run_assembly($file, $in_path, "$out_path/assembly_1st", 1, $cmd);
 		
-		print STDERR "Assembling locus $i of $total \r";
+		print STDERR "Assembling $i of $total \r";
 		$thread_m->finish;
 		
 	}
-
 	$thread_m->wait_all_children;
 	`find $in_path/ -name "*cap*" |xargs rm -rf`;
 }
@@ -135,17 +138,24 @@ if (! -e "$out_path/assembly_2nd") {
 	
 	`mkdir -p $out_path/assembly_2nd`;
 	
+} else {
+    print STDERR "Out path exists, we will delete fasta files if any...\n";
+    `find $out_path/assembly_2nd/ -name "*.fa" | xargs rm -rf`;
 }
 
 get_flist("$out_path/assembly_1st/", $out_path, "reads_2nd", "fa");
 
 $thread_m = new Parallel::ForkManager($num_threads*2); # the second run could be 2X faster.
+my $total = @files;
+my $i     = 0;
 foreach $file (@files){
-	
+    
+    $i++;
 	$thread_m->start and next;
-	
-	run_assembly($file, "$out_path/assembly_1st", "$out_path/assembly_2nd", 2, $cmd);
-	
+    
+    run_assembly($file, "$out_path/assembly_1st", "$out_path/assembly_2nd", 2, $cmd);
+    
+    print STDERR "Assembling $i of $total \r";
 	$thread_m->finish;
 	
 }
@@ -155,13 +165,13 @@ $thread_m->wait_all_children;
 `find $out_path/assembly_1st/ -name "*cap*" |xargs rm -rf`;
 
 ##collect the final results, and delet useless files;
-print "Starting to collect the final contigs...\n";
+print "\nStarting to collect the final contigs...\n";
 
 get_flist("$out_path/assembly_2nd", $out_path, "2nd_assembled","fa");	# get the list of second assembly files;
 
 parse_fasta(\@files, "$out_path/assembly_2nd", "$out_path", "collected_final.fa");
 
-##	if collect contigs for reads1;
+##	if collect contigs for reads2;
 if ($collect) {
 	
 	my $in_fa = $out_path . "/" . "assembly_1st";
@@ -170,7 +180,7 @@ if ($collect) {
 	
 	get_flist("$out_path/assembly_1st",$out_path,"collect_reads1","fa");
 	
-	parse_fasta(\@files, $in_fa, $out_fa, $name_fa);
+	parse_fasta(\@files, $in_fa, $out_fa, $name_fa, 1);
 	
 	`sed -i /Consensus/d  $out_fa/$name_fa`;
 	
@@ -179,7 +189,7 @@ if ($collect) {
 
 sub parse_fasta {
 
-	my ($files, $in_fa, $out_fa, $name_fa) =@_;
+	my ($files, $in_fa, $out_fa, $name_fa, $flag) =@_;
 	my ($in_fh, $out_fh, $file);
 	
 	open ($out_fh, ">$out_fa/$name_fa") or die "$!";
@@ -187,13 +197,16 @@ sub parse_fasta {
 	foreach $file (@$files) {
 		open ($in_fh, "<$in_fa/$file") or die "$!";
 		while (<$in_fh>) {
-			chomp if /Consensus/;
+			if (defined $flag && $_ =~ /Consensus/) {
+                # if collect contigs only for read2.
+                chomp;
+            }
 			my $locus = substr($file, 0, -3);
 			if (/^>/) {
 				print $out_fh "\n" if $. > 1; # a new start of fasta.
-				$_ =~ s/^>/>$locus\./;
+				$_ =~ s/^>/>$locus\./ if $_ !~ /Consensus/; # if not consensus.
 			} else {
-				$_ =~ s/\n$//;
+				$_ =~ s/\n$//; # seq to one line.
 			}
 			print $out_fh $_;
 		}
