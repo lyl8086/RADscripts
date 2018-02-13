@@ -18,12 +18,6 @@ Path()
 }
 
 # Test requirements.
-# bc
-if [ ! `which bc 2>/dev/null` ];
-then
-	echo "Please install bc"
-	exit 1
-fi
 
 # perl modules
 perl -le "use Parallel::ForkManager" >& /dev/null
@@ -55,7 +49,8 @@ then
 else
 	cstacks --version 2>/tmp/RADpipeline.log
 	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d "a-zA-Z"`
-	if [ `echo "$v<1.45"|bc` -ne 0 ];
+    rm /tmp/RADpipeline.log
+	if [ `awk -v v=$v 'BEGIN {if (v<1.45) {print 1} else {print 0}}'` -ne 0 ];
 	then
 		echo "You need to update stacks to 1.45 or later."
 		exit 1
@@ -69,7 +64,8 @@ then
 else
 	sstacks --version 2>/tmp/RADpipeline.log
 	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d "a-zA-Z"`
-	if [ `echo "$v<1.45"|bc` -ne 0 ];
+    rm /tmp/RADpipeline.log
+	if [ `awk -v v=$v 'BEGIN {if (v<1.45) {print 1} else {print 0}}'` -ne 0 ];
 	then
 		echo "You need to update stacks to 1.45 or later."
 		exit 1

@@ -48,7 +48,23 @@ my $mincov;
 parse_command_line();
 if (!-d $out_path) {
 	mkdir $out_path;
+} 
+=cut
+else {
+    print STDERR "Error: output directory: $out_path already exist, \ndo you want to delete it ? y/n\n";
+    my $info = <STDIN>;
+    $info =~ s/[\r\n]//g;
+    if ($info eq 'y' || $info eq 'yes') {
+        `rm -rf $out_path`;
+        mkdir $out_path;
+    } else {
+        print STDERR "Please rename your directory.\n";
+        exit(1);
+    }
+    
 }
+=cut
+
 my (@files, %matches, %stacks, %reads, %marker_wl);
 
 build_file_list(\@files);

@@ -2,9 +2,9 @@
 shopt -s  expand_aliases 
 alias tcmd="date '+%A %D %X'"
 Usage='
-    #############################################################
-    A Pipeline For Assembly of RAD-seq from Multiple Indidviduals
-    #############################################################
+   ########################################################################
+    A Pipeline For Assembly of PE RAD-seq (RPE) from Multiple Indidviduals
+   ########################################################################
 	
     -i: input path. Clean reads containing enzyme site, read1? 
         e.g. (individual name).fq[fa][.gz].
@@ -88,7 +88,7 @@ do
             ;;
 		h)
 			echo "$Usage"
-			exit 1
+			exit 0
 			;;
         A)
             asmb=0
@@ -106,7 +106,7 @@ function goto
     label=$1
     cmd=$(sed -n "/#$label:/{:a;n;p;ba};" $0)
     eval "$cmd"
-    exit
+    exit 0
 }
 
 iter=0
@@ -128,6 +128,12 @@ function guess_fmt()
     else
         iter=1
         f=`ls $1/$2*`
+        if [ $? != 0 ];
+        then
+            echo -e "\033[47;31m File [prefix is $1/$2] not exists! \033[0m"
+            echo -e "Quitting..."
+            exit 1
+        fi
         if [ ${f:0-6} == '.fq.gz' ];
         then
             ftyp='gzfastq'
@@ -200,6 +206,12 @@ function read_popmap() {
     done < $1
 }
 
+function read_ind_order() {
+    # read popmap and keep the order of individual.
+    pop=''
+    pop=(`awk '{print $1}' $1`)
+}
+
 function gplot() {
 local p=$1
 local max1=$2+1
@@ -207,8 +219,9 @@ local xlab=$3
 local ylab=$4
 local mlab=$5
 local name=$6
-local leg=$7                            # legend from head.
-local yran=$8
+local asy=$7
+local leg=$8                            # legend from head.
+local yran=$9
 if [ "$yran" ];
 then
 	max2=${yran#*:}
@@ -218,11 +231,17 @@ else
 	max2='GPVAL_Y_MAX+GPVAL_Y_MAX*0.1'
 	min2='GPVAL_Y_MIN-GPVAL_Y_MAX*0.1'
 fi
-if [ "$leg" ];
+if [ "$leg" -eq 1 ];
 then
 	autoleg='set key autotitle columnhead'
 else
 	autoleg='unset key'
+fi
+if [ "$asy" -eq 1 ];
+then
+    asy="set arrow from 0,GPVAL_DATA_Y_MIN to $max1,GPVAL_DATA_Y_MIN lt 2 lw 2 lc rgb \"green\" nohead"
+else
+    asy=''
 fi
 
 gnuplot --persist << EOF
@@ -237,12 +256,14 @@ set yrange [$min2:$max2]
 set title "$mlab"
 set xlabel "$xlab"
 set ylabel "$ylab"
+set xzeroaxis
 plot $p
 set terminal pdf noenhanced
 set key inside
 set output "$out/$name.pdf"
 $autoleg
 set yrange [$min2:$max2]
+$asy
 replot
 set terminal png noenhanced 
 set output "$out/$name.png"
@@ -270,7 +291,7 @@ chooseM() {
 		echo -e "\tUsage: RADassembler chooseM [infile] [outpath] [max mismatch] [threads] [minDP] [gapped] [replot] [yrange]"
 		echo
 		echo
-		exit 1
+		exit 0
 	fi
 
 	if [ ! -d $out ]; then mkdir $out; fi
@@ -283,7 +304,7 @@ chooseM() {
     
 	if [ -z "$flag" ];
 	then
-		echo -e "mismatch\t1_allele\t2_alleles\t>=3_alleles" >$out/ustacks.stat
+		echo -e "Mismatch\t1_allele\t2_alleles\t>=3_alleles" >$out/ustacks.stat
 		for m in `seq 1 $mis`;
 		do
 			ustacks -f $file -o $out -p $threads -M $m -m $minDP -d -N 0 -H -i 1 $gap 2>&1 | tee -a $out/Ustacks.$m.log
@@ -294,7 +315,7 @@ chooseM() {
 	dat="$out/ustacks.stat"
 	plot="'$dat' using 1:2 with linespoints, '$dat' using 1:3 with linespoints, '$dat' using 1:4 with linespoints"
 	
-	gplot "$plot" "$mis" 'Mismatch' 'Number of loci' 'Similarity threshold within individual (ustacks)' 'chooseM_ustacks' 1 "$yrange"
+	gplot "$plot" "$mis" 'Mismatch' 'Number of loci' 'Similarity threshold within individual (ustacks)' 'chooseM_ustacks' 0 1 "$yrange"
 }
 
 chooseN() {
@@ -318,7 +339,7 @@ chooseN() {
 		echo -e "\tUsage: RADassembler chooseN [inpath] [outpath] [popmap] [max mismatch] [threads] [gapped] [replot] [yrange]"
 		echo
 		echo
-		exit 1
+		exit 0
 	fi
 	
     if [ ! -d $out ]; then mkdir $out; fi
@@ -336,8 +357,8 @@ chooseN() {
 		len=${#pop[@]}
 		for ((i=0;i<$len;i++));
 		do
-			indv=${pop[$i]}
-			zcat $in/$indv.models.tsv.gz |tail -1 |cut -f3 >>$out/pop.loci
+			indiv=${pop[$i]}
+			zcat $in/$indiv.models.tsv.gz |tail -1 |cut -f3 >>$out/pop.loci
 		done
 		paste $map $out/pop.loci >$out/pop.loci.1
 		sort -k3,3nr $out/pop.loci.1 | cut -f1,3 >$out/pop.order
@@ -346,8 +367,8 @@ chooseN() {
         len=${#pop[@]}
 		for ((i=0;i<$len;i++));
 		do
-			indv=${pop[$i]}
-			samp+="-s $in/$indv "
+			indiv=${pop[$i]}
+			samp+="-s $in/$indiv "
 		done
 		##################################################
 		
@@ -355,7 +376,7 @@ chooseN() {
 		for m in `seq 1 $max`;
 		do
 			cstacks -b $m -n $m -o $out $gap -p $threads $samp 2>&1 | tee $out/Cstacks.$m.log #gapped
-			echo "mismatch=$m" >$out/$m
+			echo "Mismatch=$m" >$out/$m
 			grep "newly added" $out/Cstacks.$m.log |awk '{print $1}' >>$out/$m
 			zcat $out/batch_$m.catalog.tags.tsv.gz | tail -1 |cut -f3 >>$out/catalog.num
 			tmp+=" $out/$m"
@@ -370,31 +391,26 @@ chooseN() {
 	done
 	fi
 	let nind=$(cat $out/cstacks.stat|wc -l)-1
-	gplot "$plot" "$nind" 'Individual index' 'Number of loci' 'Similarity threshold across individuals (cstacks)' 'chooseN_cstacks' 1 "$yrange"
+	gplot "$plot" "$nind" 'Individual index' 'Number of loci' 'Similarity threshold across individuals (cstacks)' 'chooseN_cstacks' 1 1 "$yrange"
 	plot="'$out/catalog.num' using (\$0+1):1 with linespoints"
-	gplot "$plot" "$m" 'Mismatch' 'Number of loci' 'Number of total catalog loci' 'chooseN_cstacks_total'
+	gplot "$plot" "$m" 'Mismatch' 'Number of loci' 'Number of total catalog loci' 'chooseN_cstacks_total' 1 0 "$yrange"
 
 }
 
 function run_ustacks() {
-    local in_path=$1
-    local out_path=$2
-    local mis=$3
-    local minDP=$4
-    local threads=$5
-    local len=${#pop[@]}
-    i=1
-    for indv in ${!pop[@]};
+    local out_path=$1
+    local mis=$2
+    local minDP=$3
+    local threads=$4
+    local map=$5
+    local len=${#indivs[@]}
+    for ((i=0;i<$len;i++));
     do
-    guess_fmt $in_path $indv
-    check_fmt $in_path $indv $suffix
-    # disable haplotype from secondly reads.
-    ustacks -t $ftyp -f $in_path/$indv.$suffix -H -N 0 $ugap -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $i 2>&1 | tee -a $out_path/stacks/Ustacks.log
-    if [ $iter ] && [ $i -lt $len ];
-    then
-        ftyp=''
-    fi
-    let i+=1
+        indiv=${indivs[$i]}
+        let j=$i+1
+        # disable haplotype from secondly reads.
+        ustacks -t $ftyp -f $indiv -H -N 0 $ugap -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $j 2>&1 | tee -a $out_path/stacks/Ustacks.log
+        
     done
     tt=`grep 'ustacks is done.' $out_path/stacks/Ustacks.log`
     if [ -z "$tt" ];
@@ -420,52 +436,35 @@ function run_cstacks() {
         exit 1
     fi
 }
+
+check_files() {
+    local in_path=$1
+    local sa_path=$2
+    local len=${#pop[@]}   
+    for ((i=0;i<$len;i++));
+    do
+        indiv=${pop[$i]}
+        let j=$i+1
+        guess_fmt $in_path $indiv
+        check_fmt $in_path $indiv $suffix
+        ez=$in_path/$indiv.$suffix
+        pe1=$sa_path/${indiv}_1.$suffix
+        pe2=$sa_path/${indiv}_2.$suffix
+        if [ ! -f "$ez" ] || ([ ! -f "$pe1" ] && [ ! -f "$pe2" ]);
+        then
+            echo "File name error, please rename files with enzyme cut sites as individual.fq.gz, e.g. indiv1.fq.gz"
+            echo "And rename files with random sheared ends as individual_2.fq.gz, e.g. indiv1_2.fq.gz"
+            exit 1
+        fi
+        indivs[$i]=$ez # array for individuals.
+        if [ $iter ] && [ $j -lt $len ];
+        then
+            ftyp=''
+        fi
+    done
+}
 ###### Preliminary ######
-if [ ! `which ustacks 2>/dev/null` ];
-then
-	echo "ustacks not exist!"
-	echo "please download it at http://catchenlab.life.illinois.edu/stacks/"
-	exit 1
-fi
-if [ ! `which cstacks 2>/dev/null` ];
-then
-	echo "cstacks not exist!"
-	echo "please download it at http://catchenlab.life.illinois.edu/stacks/"
-	exit 1
-else
-	cstacks --version 2>/tmp/RADpipeline.log
-	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d 'a-zA-Z'`
-	if [ `echo "$v<1.45"|bc` -ne 0 ];
-	then
-		echo "You need to update stacks to 1.45 or later."
-		exit 1
-	fi
-fi
-if [ ! `which sstacks 2>/dev/null` ];
-then
-	echo "sstacks not exist!"
-	echo "please download it at http://catchenlab.life.illinois.edu/stacks/"
-	exit 1
-else
-	sstacks --version 2>/tmp/RADpipeline.log
-	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d 'a-zA-Z'`
-	if [ `echo "$v<1.45"|bc` -ne 0 ];
-	then
-		echo "You need to update stacks to 1.45 or later."
-		exit 1
-	fi
-fi
-if [ ! `which cap3 2>/dev/null` ];
-then
-echo "cap3 not exist!"
-echo "please download it at http://seq.cs.iastate.edu/cap3.html"
-exit 1
-fi
-if [ ! `which gnuplot 2>/dev/null` ];
-then
-echo "please install gnuplot!"
-exit 1
-fi
+
 ######Set environment ######
 cur_path=`which RADassembler`
 cur_path=${cur_path%"RADassembler"}
@@ -478,18 +477,18 @@ export PATH=$cur_path/bin:$PATH
 if [ "$1" = 'chooseN' ];
 then
 	chooseN $2 $3 $4 $5 $6 $7 $8 $9
-	exit 1
+	exit 0
 fi
 if [ "$1" = 'chooseM' ]; 
 then
 	chooseM $2 $3 $4 $5 $6 $7 $8 $9
-	exit 1
+	exit 0
 fi
 
 if [ $# -lt 4 ] || [ $1 = -h ];
 then 
 	echo "$Usage"
-	exit 1
+	exit 0
 fi
 ###### Default parameters ######
 if [ -z "$in_path" ];
@@ -509,7 +508,7 @@ then
 fi
 if [ -z "$map" ];
 then
-	echo "Please indicate PopMap file!"
+	echo "Please indicate a PopMap file!"
 	exit 1
 fi
 
@@ -557,7 +556,8 @@ fi
 ######################################
 if [ -d "$out_path" ];
 then 
-	echo -e "\033[47;31m Directory exists! Do you want to delete it ?!!!\033[0m"
+	echo -e "\033[47;31m Directory [$out_path] exists!\033[0m"
+    echo -e "\033[47;31m Do you want to delete it ?!\033[0m"
 	read con
 	if [ "$con" == 'y' ] || [ "$con" == 'yes' ];
 	then
@@ -572,29 +572,34 @@ then
 	fi
 fi
 ###### Sort the reads by Stacks ######
-declare -A pop
-read_popmap $map
+#declare -A pop
+#read_popmap $map
+read_ind_order $map
 mkdir -p $out_path/stacks
 len=${#pop[@]}
+indivs=()
+###### Check Files ######
+check_files $in_path $samp
+ 
 ###### Single Run #######
 if [ "$run_flg" == 'ustacks' ];
 then
     echo "Single run of ustacks is starting."
-    run_ustacks $in_path $out_path $mis $minDP $threads
+    run_ustacks $out_path $mis $minDP $threads
     echo "Single run of ustacks is done."
-    exit 1
+    exit 0
 fi
 if [ "$run_flg" == 'cstacks' ];
 then
     echo "Single run of cstacks is starting."
     run_cstacks $in_path $out_path $c_mis 1 $map $threads
     echo "Single run of cstacks is done."
-    exit 1
+    exit 0
 fi   
 #########################
 ###### Parameters ######
 par="
-Parameters:
+RADassembler Parameters:
 \nNum  of individual                     : $len
 \nPath of reads for clustring[read1]     : $in_path 
 \nPath of reads for assembly[paired-end] : $samp
@@ -617,7 +622,11 @@ echo "======================================================"
 echo "  [`tcmd`] Running ustacks..."
 echo "======================================================"
 t1=$(date +%s)
-run_ustacks $in_path $out_path $mis $minDP $threads
+run_ustacks $out_path $mis $minDP $threads
+if [ $? != 0 ];
+then
+    exit 1;
+fi
 #################################
 running_time ustacks
 ###### cstacks and sstacks ######
@@ -625,6 +634,10 @@ echo "======================================================"
 echo "  [`tcmd`] Running cstacks..."
 echo "======================================================"
 run_cstacks $out_path/stacks $out_path/stacks $c_mis 1 $map $threads
+if [ $? != 0 ];
+then
+    exit 1;
+fi
 running_time cstacks
 
 ###### Continue to run assembly by flag ######
@@ -645,8 +658,30 @@ running_time sstacks
 echo "==========================================================="
 echo "  [`tcmd`] Exporting fasta files..."
 echo "==========================================================="
+if [ -d "$out_path/reads_export" ];
+then
+    echo -e "\033[47;31m Directory [$out_path/reads_export] exists \033[0m"
+    echo -e "\033[47;31m Do you want to delete it ? y/n \033[0m"
+	read con
+	if [ "$con" == 'y' ] || [ "$con" == 'yes' ];
+	then
+		echo "Deleting $out_path/reads_export..."
+		rm -rf $out_path/reads_export
+    elif [ "$con" == 'r' ];
+    then
+        echo "Continue anyway..."
+	else
+		echo "Directory exists, please rename it."
+		exit 1;
+	fi
+fi
 mkdir -p $out_path/reads_export
 sort_read_pairs.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -m $minL -i ${ftyp#"gz"} $cov 2>&1 | tee $out_path/stacks/export.log
+if [ $? != 0 ];
+then
+    echo "Error in exporting fasta files, exiting..."
+    exit 1;
+fi
 ##########################
 running_time 'exporting fasta'
 ###### run assembly ######

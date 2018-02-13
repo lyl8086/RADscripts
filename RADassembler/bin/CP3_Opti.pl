@@ -51,7 +51,7 @@ if (! -e "$out_path/assembly_1st") {
 	`mkdir -p $out_path/log`
 	
 } else {
-    print STDERR "Out path exists, we will delete fasta files if any...\n";
+    print STDERR "Out path exists, will delete fasta files if any...\n";
     `find $out_path/assembly_1st/ -name "*.fa" | xargs rm -rf`;
 }
 
@@ -139,7 +139,7 @@ if (! -e "$out_path/assembly_2nd") {
 	`mkdir -p $out_path/assembly_2nd`;
 	
 } else {
-    print STDERR "Out path exists, we will delete fasta files if any...\n";
+    print STDERR "Out path exists, will delete fasta files if any...\n";
     `find $out_path/assembly_2nd/ -name "*.fa" | xargs rm -rf`;
 }
 

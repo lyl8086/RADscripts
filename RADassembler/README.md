@@ -1,7 +1,7 @@
-RADAssembler
+RADassembler
 ===
 
-<b>A Pipeline For Assembly of RAD-seq (RPE) from Multiple Indidviduals</b>
+<b>A Pipeline For Assembly of RAD-seq (RPE) from Multiple Individuals</b>
 
 Note: Only for Paired-end RAD-seq reads with random sheared ends (the original RAD protocol).
 
@@ -55,13 +55,36 @@ How to select similarity thresholds within and across individuals
 ---
 * within individual [ustacks]
 ```
-Usage: RADassembler chooseM [infile] [outpath] [max mismatch] [threads] [minDP] [gapped] [replot] [yrange]
+Usage : RADassembler chooseM [infile] [outpath] [max mismatch] [threads] [minDP] [gapped] [replot] [yrange]
+
+infile : a single individual reads file with enzyme cut site for clustering.
+outpath : output path for this run.
+max mismatch : maximum mismatch to run ustacks, RADassembler will run a set of mismatches by a step of one.
+threads : number of threads used for ustacks.
+minDP : minimum stack depth for ustacks.
+gapped : gapped assembly for ustacks (1: on, 0: off).
+replot : just re-plot graphs using different parameters.
+yrange : ranges for axis used in plot, minimum:maximum.
 ```
+
 * across individuals[cstacks]
 ```
 Usage: RADassembler chooseN [inpath] [outpath] [popmap] [max mismatch] [threads] [gapped] [replot] [yrange]
+
+inpath: input path for cstacks, containing ustacks files.
+outpath: output path for this run.
+popmap: a PopMap file, e.g. `individual\tpopulation`.
+max mismatch: maximum mismatch for cstacks, RADassembler will run a set of mismatches, i.e. 1,2...maximum.
+threads: number of threads used in cstacks.
+gapped: turn on gapped assembly? 1:on, 0:off.
+replot: just re-plot graphs.
+yrange: ranges for axis used in plot, minimum:maximum.
 ```
 <b>see</b> [samples](samples) for an example run.
+
+Tutorial
+---
+Working on...
 
 About the output
 ---
