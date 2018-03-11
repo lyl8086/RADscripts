@@ -20,7 +20,7 @@ my $usage =
 	
 	-i input path of fasta files
 	-o output path for assembly files
-	-l catalog file from stacks [batch_XXX.catalog.tags.tsv.gz]
+	-l catalog file from stacks [*catalog.tags.tsv.gz]
 	-t number of threads [1]
 	-c collect the assembly results for the second reads [0]
 	-p parameters parsed to CAP3
@@ -64,7 +64,7 @@ unless($cmd) {
 	$cmd = '-r 0 -i 30 -j 31 -o 18 -s 300 -p 85';
 }
 
-`echo -e "cap3 $cmd" > $out_path/log/assembly.1par`;
+`echo "cap3 $cmd" > $out_path/log/assembly.1par`;
 
 
 ##	extract consensus from stacks catalogs;
@@ -78,13 +78,29 @@ elsif (substr($loci, -2) eq '7z') {
 else {
 	open($in_tags, "$loci") or die "$!";
 }
-my %seqs;
+my (%seqs, $v);
 while (<$in_tags>) {
 	
 	next if /^#/;
+    my ($id, $seq);
 	my @parts = split(/\t/, $_);
-	my $id    = $parts[2];
-	my $seq   = $parts[9];
+    if (!$v) {
+        # only the use the first line.
+        my $npart = @parts;
+        if ($npart == 14) {$v = 1;}
+        elsif ($npart == 9) {$v = 2;}
+        else {die "Stacks tags files error!";}
+    }
+   
+    if ($v == 1) {
+        $id  = $parts[2];
+        $seq = $parts[9];
+    } elsif ($v == 2) {
+        $id  = $parts[1];
+        $seq = $parts[5];
+    } else {
+        die "Stacks tags files error!";
+    } 
 	die "catalog file is wrong!!\n" if ($id+1 ne $.); 
 	$seq = uc(reverse $seq);
 	$seq =~ tr/ATCGN/TAGCN/;
@@ -121,7 +137,7 @@ unless ($sec_asmb) {
 	
         run_assembly($file, $in_path, "$out_path/assembly_1st", 1, $cmd);
 		
-		print STDERR "Assembling $i of $total \r";
+		print STDERR "  Assembling $i of $total \r";
 		$thread_m->finish;
 		
 	}
@@ -132,7 +148,7 @@ unless ($sec_asmb) {
 ## 2nd assembly;
 print "\nStarting the second run...\n";
 
-`echo -e "cap3 $cmd" > $out_path/log/assembly.2par`;
+`echo "cap3 $cmd" > $out_path/log/assembly.2par`;
 
 if (! -e "$out_path/assembly_2nd") {
 	
@@ -155,7 +171,7 @@ foreach $file (@files){
     
     run_assembly($file, "$out_path/assembly_1st", "$out_path/assembly_2nd", 2, $cmd);
     
-    print STDERR "Assembling $i of $total \r";
+    print STDERR "  Assembling $i of $total \r";
 	$thread_m->finish;
 	
 }

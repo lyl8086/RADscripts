@@ -16,16 +16,22 @@ PREREQUISITES
 How to Install
 ---
 ```
-# wget https://github.com/lyl8086/RADscripts/raw/master/RADassembler/RADassembler.tar.gz
-# tar -xvf RADassembler.tar.gz && cd RADassembler && bash INSTALL.sh
+# wget https://github.com/lyl8086/RADscripts/releases/download/V1.01/RADassembler.tar.gz
+# tar -xvf RADassembler.tar.gz
+# cd RADassembler
+# bash INSTALL.sh
+# if you want to run a test, run bash TEST.sh
 ```
 How to Run
 ---
 important:
 
-`-i` individuals' files (reads with enzyme cut sites) should be name as <b>`name.fq.gz`</b>
+`-i` individuals' files (reads with enzyme cut sites) should be name as <b>`name.fq.gz`</b>, [examples](samples/read1)
 
-`-s` individuals' files (with randomly sheared reads) should be name as <b>`name_2.fq.gz` or `name_1.fq.gz`</b>
+`-s` individuals' files (with randomly sheared reads) should be name as <b>`name_2.fq.gz` or `name_1.fq.gz`</b>, [examples](samples/read2)
+
+PopMap [example](samples/PopMap)
+
 
 ```
 # RADassembler
@@ -73,7 +79,7 @@ Usage: RADassembler chooseN [inpath] [outpath] [popmap] [max mismatch] [threads]
 
 inpath: input path for cstacks, containing ustacks files.
 outpath: output path for this run.
-popmap: a PopMap file, e.g. `individual\tpopulation`.
+popmap: a [PopMap](samples/PopMaP) file, e.g. `individual\tpopulation`.
 max mismatch: maximum mismatch for cstacks, RADassembler will run a set of mismatches, i.e. 1,2...maximum.
 threads: number of threads used in cstacks.
 gapped: turn on gapped assembly? 1:on, 0:off.

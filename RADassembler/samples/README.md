@@ -1,9 +1,9 @@
 
 An example run:
 ---
-Digest_reads: reads containing enzyme cut sites.
+read1: reads containing enzyme cut sites.
 
-Paired_reads: randomly sheared reads (paired-end reads).
+read2: randomly sheared reads (paired-end reads).
 ```
-# RADassembler -i Digest_reads/ -o Assembly_out -s Paired_reads/ -f gzfastq -P PopMap -t 4
+# RADassembler -i read1 -o Assembly_out -s read2 -f gzfastq -P PopMap -t 8 -m 6 -n 6 -M 3 -D 10:100
 ```

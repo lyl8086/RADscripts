@@ -1,6 +1,7 @@
 #!/bin/bash
 shopt -s  expand_aliases 
 alias tcmd="date '+%A %D %X'"
+t0=$(date +%s)
 Usage='
    ########################################################################
     A Pipeline For Assembly of PE RAD-seq (RPE) from Multiple Indidviduals
@@ -106,7 +107,7 @@ function goto
     label=$1
     cmd=$(sed -n "/#$label:/{:a;n;p;ba};" $0)
     eval "$cmd"
-    exit 0
+    if [ $?==0 ]; then exit 0; else exit 1; fi
 }
 
 iter=0
@@ -280,7 +281,7 @@ chooseM() {
     local gap=$6
 	local flag=$7
 	local yrange=$8
-    local name=${file#*/}
+    local name=`basename $file`
     local name=${name%.f*} # remove suffix f[ast][aq][.gz], may be bugs here.
     
 	if [ $# -lt 4 ];
@@ -295,12 +296,10 @@ chooseM() {
 	fi
 
 	if [ ! -d $out ]; then mkdir $out; fi
-    if [ "$gap" == 1 ];
-    then
-        gap='--gapped'
-    else
-        gap=''
-    fi
+    if [ "$gap" == 1 ];then gap='--gapped'
+    else gap=''; fi
+    
+    if [ ! "$minDP" ]; then minDP=3; fi
     
 	if [ -z "$flag" ];
 	then
@@ -308,9 +307,24 @@ chooseM() {
 		for m in `seq 1 $mis`;
 		do
 			ustacks -f $file -o $out -p $threads -M $m -m $minDP -d -N 0 -H -i 1 $gap 2>&1 | tee -a $out/Ustacks.$m.log
-			nloci=`zcat $out/$name*.models.tsv.gz |tail -1 |cut -f3`
-			zcat $out/$name*.alleles.tsv.gz |grep -v '^#' |cut -f3 |sort|uniq -c |awk -v n=$nloci -v m=$m '{if($1==2){a++;} else if($1>2){b++;}} END {print m"\t"n-a-b"\t"a"\t"b;}' >>$out/ustacks.stat
-		done
+			nparts=`zcat $out/$name*.snps.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'` # test if new version for stacks.
+            if [ "$nparts" == 10 ];
+            then
+                nloci=`zcat $out/$name*.snps.tsv.gz |tail -1 |cut -f3`
+                zcat $out/$name*.alleles.tsv.gz |grep -v '^#' |cut -f3 |sort|uniq -c | \
+                awk -v n=$nloci -v m=$m '{if($1==2){a++;} else if($1>2){b++;}} END {print m"\t"n-a-b"\t"a"\t"b;}' \
+                >>$out/ustacks.stat
+            elif [ "$nparts" == 9 ];
+            then
+                nloci=`zcat $out/$name*.snps.tsv.gz |tail -1 |cut -f2`
+                zcat $out/$name*.alleles.tsv.gz |grep -v '^#' |cut -f2 |sort|uniq -c | \
+                awk -v n=$nloci -v m=$m '{if($1==2){a++;} else if($1>2){b++;}} END {print m"\t"n-a-b"\t"a"\t"b;}' \
+                >>$out/ustacks.stat
+            else
+                echo "Stacks files [$out/$name*.snps.tsv.gz] error!"
+                exit 1;
+            fi
+        done
 	fi
 	dat="$out/ustacks.stat"
 	plot="'$dat' using 1:2 with linespoints, '$dat' using 1:3 with linespoints, '$dat' using 1:4 with linespoints"
@@ -358,7 +372,18 @@ chooseN() {
 		for ((i=0;i<$len;i++));
 		do
 			indiv=${pop[$i]}
-			zcat $in/$indiv.models.tsv.gz |tail -1 |cut -f3 >>$out/pop.loci
+            nparts=`zcat $in/$indiv.snps.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'`
+			if [ "$nparts" == 10 ];
+            then
+                zcat $in/$indiv.snps.tsv.gz |tail -1 |cut -f3 >>$out/pop.loci
+            elif [ "$nparts" == 9 ];
+            then
+                zcat $in/$indiv.snps.tsv.gz |tail -1 |cut -f2 >>$out/pop.loci
+            else
+                echo "Stacks file [$in/$indiv.snps.tsv.gz] error!"
+                exit 1;
+            fi
+            #zcat $in/$indiv.models.tsv.gz |tail -1 |cut -f3 >>$out/pop.loci
 		done
 		paste $map $out/pop.loci >$out/pop.loci.1
 		sort -k3,3nr $out/pop.loci.1 | cut -f1,3 >$out/pop.order
@@ -375,10 +400,20 @@ chooseN() {
 		: >$out/catalog.num
 		for m in `seq 1 $max`;
 		do
-			cstacks -b $m -n $m -o $out $gap -p $threads $samp 2>&1 | tee $out/Cstacks.$m.log #gapped
+			cstacks -n $m -o $out $gap -p $threads $samp 2>&1 | tee $out/Cstacks.$m.log #gapped
 			echo "Mismatch=$m" >$out/$m
 			grep "newly added" $out/Cstacks.$m.log |awk '{print $1}' >>$out/$m
-			zcat $out/batch_$m.catalog.tags.tsv.gz | tail -1 |cut -f3 >>$out/catalog.num
+			nparts=`zcat $out/*catalog.tags.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'`
+            if [ "$nparts" == 14 ];
+            then
+                zcat $out/*catalog.snps.tsv.gz | tail -1 |cut -f3 >>$out/catalog.num
+            elif [ "$nparts" == 9 ];
+            then
+                zcat $out/*catalog.snps.tsv.gz | tail -1 |cut -f2 >>$out/catalog.num
+            else 
+                echo "Stacks files [$out/*catalog.snps.tsv.gz] error!"
+                exit 1;
+            fi
 			tmp+=" $out/$m"
 			plot+="'$out/cstacks.stat' using (\$0+1):$m with linespoints, "
 		done
@@ -428,7 +463,7 @@ function run_cstacks() {
     local map=$5
     local threads=$6
 
-    cstacks -b $batch -P $in_path -M $map -n $c_mis $cgap -p $threads 2>&1 | tee $out_path/Cstacks.log
+    cstacks -P $in_path -M $map -n $c_mis $cgap -p $threads 2>&1 | tee $out_path/Cstacks.log
     tt=`grep 'cstacks is done.' $out_path/Cstacks.log`
     if [ -z "$tt" ];
     then
@@ -477,12 +512,12 @@ export PATH=$cur_path/bin:$PATH
 if [ "$1" = 'chooseN' ];
 then
 	chooseN $2 $3 $4 $5 $6 $7 $8 $9
-	exit 0
+    if [ $?==0 ]; then exit 0; else exit 1; fi
 fi
 if [ "$1" = 'chooseM' ]; 
 then
 	chooseM $2 $3 $4 $5 $6 $7 $8 $9
-	exit 0
+	if [ $?==0 ]; then exit 0; else exit 1; fi
 fi
 
 if [ $# -lt 4 ] || [ $1 = -h ];
@@ -586,15 +621,13 @@ if [ "$run_flg" == 'ustacks' ];
 then
     echo "Single run of ustacks is starting."
     run_ustacks $out_path $mis $minDP $threads
-    echo "Single run of ustacks is done."
-    exit 0
+    if [ $?==0 ]; then echo "Single run of ustacks is done."; exit 0; else exit 1; fi    
 fi
 if [ "$run_flg" == 'cstacks' ];
 then
     echo "Single run of cstacks is starting."
     run_cstacks $in_path $out_path $c_mis 1 $map $threads
-    echo "Single run of cstacks is done."
-    exit 0
+    if [ $?==0 ]; then echo "Single run of cstacks is done."; exit 0; else exit 1; fi
 fi   
 #########################
 ###### Parameters ######
@@ -645,7 +678,7 @@ running_time cstacks
 echo "======================================================"
 echo "  [`tcmd`] Running sstacks..."
 echo "======================================================"
-sstacks -b 1 -P $out_path/stacks/ -M $map -p $threads 2>&1 | tee $out_path/stacks/Sstacks.log
+sstacks -P $out_path/stacks/ -M $map -p $threads 2>&1 | tee $out_path/stacks/Sstacks.log
 tt=`grep 'sstacks is done.' $out_path/stacks/Sstacks.log`
 if [ -z "$tt" ];
 then
@@ -690,8 +723,9 @@ then
     echo "==========================================================="
     echo "  [`tcmd`] Run local assembly..."
     echo "==========================================================="
-    CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/batch_1.catalog.tags* -t $threads
+    CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/*catalog.tags.tsv* -t $threads
 fi
 running_time Assembly
-echo " [`tcmd`] Done!"
-
+echo "[`tcmd`] Done!"
+t2=$(date +%s)
+echo "Total running time is $(( $t2 - $t0 )) s"

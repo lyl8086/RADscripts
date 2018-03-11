@@ -29,7 +29,7 @@
 #
 
 use strict;
-use constant stacks_version => "1.32.2";
+use constant stacks_version => "180310";
 use Array::Shuffle 'shuffle_array'; # faster.
 use constant true  => 1;
 use constant false => 0;
@@ -171,7 +171,7 @@ print STDERR "done.\n";
 sub load_matches {
     my ($in_path, $in_file, $matches, $marker_wl) = @_;
 
-    my ($file, $in_fh, $line, @parts, $key);
+    my ($file, $in_fh, $line, @parts, $key, $v);
 
     if ($gzipped == true) {
 	$file  = $in_path . "/" . $in_file->{'prefix'} . $in_file->{'suffix'} . ".matches.tsv.gz";
@@ -182,22 +182,39 @@ sub load_matches {
     }
 
     while ($line = <$in_fh>) {
+        next if $line =~ /^#/;
         chomp $line;
         @parts = split(/\t/, $line);
-
+        my ($cat_id, $loc_id);
+        if (!$v) {
+            # only the use the first line.
+            my $npart = @parts;
+            if ($npart == 8) {$v = 1;}
+            elsif ($npart == 6) {$v = 2;}
+            else {die "Stacks tags files error!";}
+        }
+        if ($v == 1) {
+            $cat_id = $parts[2];
+            $loc_id = $parts[4];
+        } elsif ($v == 2) {
+            $cat_id = $parts[0];
+            $loc_id = $parts[2];
+        } else {
+            die "Stacks files error!";
+        }
         if (length($cat_white_list) > 0) {
-	    next if (!defined($marker_wl->{$parts[2]}));
+	    next if (!defined($marker_wl->{$cat_id}));
 	}
 
-        if (!defined($matches->{$parts[2]})) {
-            $matches->{$parts[2]} = {};
+        if (!defined($matches->{$cat_id})) {
+            $matches->{$cat_id} = {};
         }
 
         #
         # Index by catalog_ID -> sample_ID|stack_ID
         #
-        $key = $in_file->{'prefix'} . "|" . $parts[4];
-        $matches->{$parts[2]}->{$key}++;
+        $key = $in_file->{'prefix'} . "|" . $loc_id;
+        $matches->{$cat_id}->{$key}++;
     }
 
     close($in_fh);
@@ -206,7 +223,7 @@ sub load_matches {
 sub load_stacks {
     my ($in_path, $in_file, $stacks) = @_;
 
-    my ($file, $in_fh, $line, @parts);
+    my ($file, $in_fh, $line, @parts, $v);
 
     if ($gzipped == true) {
 	$file = $in_path . "/" . $in_file->{'prefix'} . $in_file->{'suffix'} . ".tags.tsv.gz";
@@ -217,22 +234,41 @@ sub load_stacks {
     }
 
     while ($line = <$in_fh>) {
+        next if $line =~ /^#/;
         chomp $line;
         @parts = split(/\t/, $line);
-
-        next if ($parts[6] eq "consensus" || $parts[6] eq "model" || $parts[6] eq "secondary");
+        my ($model, $seq_id, $cat_id, $loc_id);
+        if (!$v) {
+            # only the use the first line.
+            my $npart = @parts;
+            if ($npart == 14) {$v = 1;}
+            elsif ($npart == 9) {$v = 2;}
+            else {die "Stacks tags files error!";}
+        }
+        if ($v == 1) {
+            $model  = $parts[6];
+            $seq_id = $parts[8];
+            $loc_id = $parts[2];
+        } elsif ($v == 2) {
+            $model  = $parts[2];
+            $seq_id = $parts[4];
+            $loc_id = $parts[1];
+        } else {
+            die "Stacks tags files error!";
+        }
+        next if ($model eq "consensus" || $model eq "model" || $model eq "secondary");
 
         #
         # Index by sequence ID -> stack ID
         #
-		if ($parts[8] =~ /(.+)\s+(.+)$/) {
+		if ($seq_id =~ /(.+)\s+(.+)$/) {
 			#
 			# Type I: 
 			# HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
 			#
 			
-			$stacks->{$1} = $parts[2];
-		} elsif ($parts[8] =~ /(.+)[12]$/) {
+			$stacks->{$1} = $loc_id;
+		} elsif ($seq_id =~ /(.+)[12]$/) {
             # Type II:
 			# CTACAG_8_1103_15496_190439_1|1
 			#
@@ -241,9 +277,9 @@ sub load_stacks {
 			# 4_1101_13393_1801/1
             # ...
             # print $1, "\n";
-			$stacks->{$1} = $parts[2];
+			$stacks->{$1} = $loc_id;
 		} else {
-			$stacks->{$parts[8]} = $parts[2];
+			$stacks->{$seq_id} = $loc_id;
 		}
     }
 
@@ -592,7 +628,7 @@ sub build_file_list {
 	chomp $line;
 
 	next if (length($line) == 0);	
-	next if ($line =~ /batch_\d+\.catalog/);
+	next if ($line =~ /.*catalog\..+/);
 
 	($file) = ($line =~ /$in_path\/(.+)\.tags\.tsv\.?g?z?$/); 
 
