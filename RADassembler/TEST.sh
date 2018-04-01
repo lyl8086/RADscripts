@@ -14,7 +14,7 @@ echo "  1. Testing chooseM function for RADassembler..."
 t0=$(date +%s)
 t1=$(date +%s)
 
-RADassembler chooseM samples/read1/fishsim-1.fq.gz tmp_out/chooseM 10 $threads 5 \
+RADassembler chooseM samples/read1/fishsim-1.fq.gz tmp_out/chooseM 10 $threads 3 \
 >tmp_out/logs 2>&1
 
 if [ $? == 0 ]; then let s++; t2=$(date +%s)
@@ -25,7 +25,7 @@ else let f++; echo "     failed in chooseM function!"; fi
 echo "  2. Testing single run function for RADassembler..."
 t1=$(date +%s)
 
-RADassembler -i samples/read1 -s samples/read2 -P samples/PopMap -M 5 -m 5 -t $threads \
+RADassembler -i samples/read1 -s samples/read2 -P samples/PopMap -m 6 -t $threads \
 -o tmp_out/chooseN -R ustacks >>tmp_out/logs 2>&1
 
 if [ $? == 0 ]; then let s++; t2=$(date +%s)
@@ -46,7 +46,7 @@ else let f++; echo "     failed in chooseN function!"; fi
 echo "  4. Testing full de novo assembly function for RADassembler..."
 t1=$(date +%s)
 
-RADassembler -i samples/read1 -s samples/read2 -P samples/PopMap -M 5 -m 5 -n 5 -t $threads \
+RADassembler -i samples/read1 -s samples/read2 -P samples/PopMap -m 6 -n 6 -t $threads \
 -o tmp_out/Assembly_out -D 10:100 >>tmp_out/logs 2>&1
 
 if [ $? == 0 ]; then let s++; t2=$(date +%s)
