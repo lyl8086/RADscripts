@@ -75,7 +75,7 @@
 $RADassembler -i samples/read1 -s samples/read2 -P samples/PopMap -m 6 -n 6 -t 8 -o Assembly_out -D 10:100
 ```
     
-Then check `collected_final.fa` file in `Assembly_out/Assembly` fold for the assembled RAD contigs.
+Then check `collected_final.fa` file in `Assembly_out/Assembly` folder for the assembled RAD contigs.
     
 Note: m in RADassembler is the parameter M for ustacks.
 

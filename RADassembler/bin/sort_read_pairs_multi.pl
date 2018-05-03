@@ -29,12 +29,14 @@
 #
 
 use strict;
-use constant stacks_version => "180310";
+use warnings;
+use constant stacks_version => "180412";
 use threads; 
 use threads::shared;
 use Array::Shuffle 'shuffle_array'; # faster.
 use constant true  => 1;
 use constant false => 0;
+#use Data::Dumper;
 
 my $debug          = 0;
 my $white_list     = "";
@@ -69,10 +71,11 @@ else {
 }
 =cut
 
-my (@files, %matches, %stacks, %reads, %marker_wl);
+my (@files, %matches, %stacks, %reads, %marker_wl, %stacks_all);
+
 my ($mindepth, $maxdepth);
 
-if ($depth =~ /(\d+)\:(\d+)/) {
+if ($depth && $depth =~ /(\d+)\:(\d+)/) {
 	$mindepth = $1;
 	$maxdepth = $2;
 } else {
@@ -96,7 +99,7 @@ foreach $file (@files) {
     #
     # Load the sstacks file, listing matches between the stacks and the catalog
     #
-    load_matches($in_path, $file, \%matches, \%marker_wl);
+    load_matches($in_path, $file, \%matches, \%marker_wl, \%stacks_all);
 
     $i++;
 }
@@ -118,58 +121,42 @@ print STDERR
 # Check if files already exist, if so, exit to prevent adding data to existing files.
 #
 # not needed.
+
+#
+# reads->sample_id->stack_id->[]
+#
 my ($cat_id, $path);
-=cut
-foreach $cat_id (keys %matches) {
-    #
-    # Check that this catalog ID only has a single match from each sample.
-    #
-    next if (defined($multiple_matches{$cat_id}));
+$i = 1;
+my $reads = shared_clone({});
 
-    $path  = $out_path . "/" . $cat_id;
-    $path .= $out_type eq "fasta" ? ".fa" : ".fq";
+foreach $file (@files) {
+    
+    printf(STDERR "Processing file % 2s of % 2s [%s]\n", $i, $num_files, $file->{'prefix'});
 
-    if (-e $path) {
-	die("Error: output files already exist. This program will append data to files if\n" .
-	    "they already exist. Please delete these files and re-execute sort_read_pairs.pl.\n");
+    my $t = threads->create(\&parse_tag_and_reads, $file);
+    #my $sid = $t->tid();
+    #print STDERR "Starting thread $sid\n";
+    $i++;
+    my $j = scalar(threads->list(threads::all));
+    if ($j < $threads && $i < scalar(@files)) { next; }
+    my @pool = threads->list(threads::all);
+    while (scalar(@pool) >= $threads) {
+        foreach(@pool) {
+            if ($_->is_joinable()) {
+                #my $id = $_->tid();
+                #print STDERR "Joining $id\n";
+                $_->join();
+            }
+        }
+        @pool = threads->list(threads::all);
     }
 }
-=cut
-$i = 1;
-foreach $file (@files) {
-    printf(STDERR "Processing file % 2s of % 2s [%s]\n", $i, $num_files, $file->{'prefix'});
-    #
-    # Load the ustacks tag file for each sample, containing the read-to-stack mappings
-    #
-    $stacks{$file->{'prefix'}} = {};
-
-    print STDERR "  Loading tag file...";
-    load_stacks($in_path, $file, $stacks{$file->{'prefix'}});
-    print STDERR "done.\n";
-
-    #
-    # Map the read-pairs to the stack/catalog match they correspond to.
-    #
-    $reads{$file->{'prefix'}} = {};
-
-    print STDERR "  Loading sample file...";
-    $in_type eq "fastq" ?
-	process_fastq_read_pairs($samp_path, $file, \%stacks, $reads{$file->{'prefix'}}) :
-	process_fasta_read_pairs($samp_path, $file, \%stacks, $reads{$file->{'prefix'}});
-    print STDERR "done.\n";
-	
-	print STDERR "  Clearing memory...";
-	undef(%{$stacks{$file->{'prefix'}}});
-	print STDERR "done.\n";
-	
-    $i++;
-}
-
+foreach (threads->list(threads::all)) {$_->join();}
 #
 # Output files (multi-individuals) for each loci.
 #
 print STDERR "Printing results...";
-print_results($out_path, \%matches, \%stacks, \%reads, \%multiple_matches, $depth);
+print_results($out_path, \%matches, \%stacks, $reads, \%multiple_matches, $depth);
 print STDERR "done.\n";
 
 #
@@ -180,7 +167,30 @@ print STDERR "done.\n";
 #undef(%{$stacks{$file->{'prefix'}}});
 #undef(%{$reads{$file->{'prefix'}}});
 #print STDERR "  done.\n";
+
+sub parse_tag_and_reads {
 	
+	my $file  = shift;
+    #
+    # Load the ustacks tag file for each sample, containing the read-to-stack mappings
+    #
+    $stacks{$file->{'prefix'}} = {};
+
+    load_stacks($in_path, $file, $stacks{$file->{'prefix'}});
+
+    #
+    # Map the read-pairs to the stack/catalog match they correspond to.
+    #
+    if(1) {lock($reads);
+    $reads->{$file->{'prefix'}} = shared_clone({});
+    }
+    $in_type eq "fastq" ?
+	process_fastq_read_pairs($samp_path, $file, \%stacks, $reads->{$file->{'prefix'}}) :
+	process_fasta_read_pairs($samp_path, $file, \%stacks, $reads->{$file->{'prefix'}});
+    #print Dumper $reads;
+	undef(%{$stacks{$file->{'prefix'}}});
+}
+
 sub load_matches {
     my ($in_path, $in_file, $matches, $marker_wl) = @_;
 
@@ -228,6 +238,7 @@ sub load_matches {
         #
         $key = $in_file->{'prefix'} . "|" . $loc_id;
         $matches->{$cat_id}->{$key}++;
+        $stacks_all{$key}++;
     }
 
     close($in_fh);
@@ -250,7 +261,7 @@ sub load_stacks {
         next if $line =~ /^#/;
         chomp $line;
         @parts = split(/\t/, $line);
-        my ($model, $seq_id, $cat_id, $loc_id);
+        my ($model, $seq_id, $key, $loc_id);
         if (!$v) {
             # only the use the first line.
             my $npart = @parts;
@@ -270,7 +281,8 @@ sub load_stacks {
             die "Stacks tags files error!";
         }
         next if ($model ne 'primary');
-
+        $key = $in_file->{'prefix'} . "|" . $loc_id;
+        next if not defined $stacks_all{$key};
         #
         # Index by sequence ID -> stack ID
         #
@@ -322,64 +334,54 @@ sub process_fastq_read_pairs {
 		}
 	}
     
-
     while ($line = <$in_fh>) {
-	next if (substr($line, 0, 1) ne "@");
-	chomp $line;
-	#
-	#
-	#
-	if ($line =~ /^@(.+)\s+(.+)$/) {
+        next if (substr($line, 0, 1) ne "@");
+        chomp $line;
+        if ($line =~ /^@(.+)\s+(.+)$/) {
+            #
+            # Type I: 
+            # @HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
+            #
+            $read_id = $1;	  #Modified
+            $read_dd = $line; #Original read id.
+        } elsif ($line =~ /^@(.+)[12]$/) {
+            # Type II:
+            # @CTACAG_8_1103_15496_190439_1|1
+            #
+            # Type III:
+            # @4_1101_13393_1801_1
+            # @4_1101_13393_1801/1
+            # 
+            $read_id = $1;
+            $read_dd = $line;
+        } else {
+            $read_id = substr($1, 1);
+            $read_dd = $read_id;
+        }
+        $seq = <$in_fh>;
+        chomp $seq;
+        #
+        # Read the repeated ID and the quality scores.
+        #
+        <$in_fh>;
+        $qual = <$in_fh>;
+        chomp $qual;
+        $key = $stacks->{$in_file->{'prefix'}}->{$read_id};
+        next if (!defined($key));
+        
+        if (1) {lock($reads);
+		if (!defined($reads->{$key})) {
+			$reads->{$key} = shared_clone([]);
+		}
+		
 		#
-		# Type I: 
-		# @HWI-ST1276:71:C1162ACXX:1:1101:1208:2458 1:N:0:CGATGT
+		# sample->stack_id->seqs.
 		#
-		$read_id = $1;	  #Modified
-		$read_dd = $line; #Original read id.
-	} elsif ($line =~ /^@(.+)[12]$/) {
-        # Type II:
-		# @CTACAG_8_1103_15496_190439_1|1
-		#
-		# Type III:
-		# @4_1101_13393_1801_1
-        # @4_1101_13393_1801/1
-		# ...
-        # print $1, "\n";
-		$read_id = $1;
-		$read_dd = $line;
-	} else {
-		$read_id = substr($1, 1);
-		$read_dd = $read_id;
-	}
-	#
-	#
-	#
-	
-	$seq = <$in_fh>;
-	chomp $seq;
-
-	#
-	# Read the repeated ID and the quality scores.
-	#
-	<$in_fh>;
-	$qual = <$in_fh>;
-	chomp $qual;
-
-    $key = $stacks->{$in_file->{'prefix'}}->{$read_id};
-
-    next if (!defined($key));
-    if (!defined($reads->{$key})) {
-        $reads->{$key} = [];
-    }
-    
-    #
-    # sample->stack_id->seqs.
-    #
-    $size{$key}++;
-    next if ($maxdepth && $size{$key} > $maxdepth); # reduce the hash size.
-    my @tmp = ($read_dd, $seq, $qual);
-    push(@{$reads->{$key}}, \@tmp); #
-    
+		$size{$key}++;
+		#next if ($maxdepth && $size{$key} > $maxdepth); # reduce the hash size.
+		my @tmp = ($read_dd, $seq, $qual);
+		push(@{$reads->{$key}}, shared_clone(\@tmp));
+        } #
     }
     
 }
@@ -442,12 +444,13 @@ sub process_fasta_read_pairs {
     $key = $stacks->{$in_file->{'prefix'}}->{$read_id};
 
     next if (!defined($key));
-
+    if (1) {lock($reads);
     if (!defined($reads->{$key})) {
-        $reads->{$key} = [];
+        $reads->{$key} = shared_clone([]);
     }
     my @tmp = ($read_dd, $seq, '');
-    push(@{$reads->{$key}}, \@tmp); #
+    push(@{$reads->{$key}}, shared_clone(\@tmp)); 
+    }#
     }
 }
 
@@ -533,7 +536,7 @@ sub print_results {
 		$tot++;
 		$path  = $out_path . "/" . $cat_id;
 		$path .= $out_type eq "fasta" ? ".fa" : ".fq";
-        open($out_fh, ">>$path") or die("Unable to open $path; '$!'\n"); #single sample.	
+        open($out_fh, ">$path") or die("Unable to open $path; '$!'\n");
         foreach $key (keys %{$matches->{$cat_id}}) {
 				
 			($sample, $stack_id) = split(/\|/, $key);
@@ -688,9 +691,10 @@ sub parse_command_line {
 	elsif ($_ =~ /^-i$/) { $in_type    = shift @ARGV; }
 	elsif ($_ =~ /^-W$/) { $white_list = shift @ARGV; }
 	elsif ($_ =~ /^-w$/) { $cat_white_list = shift @ARGV; }
-	elsif ($_ =~ /^-d$/) { $debug++; }
+	elsif ($_ =~ /^-d$/) { $debug++;                  }
 	elsif ($_ =~ /^-m$/) { $depth      = shift @ARGV; }
 	elsif ($_ =~ /^-c$/) { $mincov     = shift @ARGV; }
+	elsif ($_ =~ /^-T$/) { $threads    = shift @ARGV; }
 	elsif ($_ =~ /^-v$/) { version(); exit(); }
 	elsif ($_ =~ /^-h$/) { usage(); }
 	else {
@@ -748,6 +752,7 @@ sort_read_pairs.pl -p path -s path -o path [-t type] [-W white_list] [-w white_l
     c: coverage (num of individuals) for a locus
     W: a white list of files to process in the input path.
     w: a white list of catalog IDs to include.
+    T: number of threads.
     h: display this help message.
     d: turn on debug output.
 

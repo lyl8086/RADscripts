@@ -10,12 +10,16 @@ Note: Only for Paired-end RAD-seq reads with random sheared ends (the original R
 
 * [STACKS](http://catchenlab.life.illinois.edu/stacks/)
 
-* Perl module [Parallel::ForkManager](https://metacpan.org/release/Parallel-ForkManager)
+* Perl >= 5.16 and modules including
+  
+  [Parallel::ForkManager](https://metacpan.org/release/Parallel-ForkManager)
+  
+  [Array::Shuffle](https://metacpan.org/release/Array-Shuffle)
 
 ## How to Install
 
 ```
-# wget https://github.com/lyl8086/RADscripts/releases/download/V1.01/RADassembler.tar.gz
+# wget https://github.com/lyl8086/RADscripts/releases/download/V1.10/RADassembler.tar.gz
 # tar -xvf RADassembler.tar.gz
 # cd RADassembler
 # bash INSTALL.sh
@@ -35,23 +39,25 @@ PopMap [example](samples/PopMap)
 # RADassembler
 
 Usage:
-    -i: input path. Clean reads containing enzyme site, read1?
-    e.g. (individual name).fq[fa][.gz].
-    -o: out path.
-    -s: paired-end path. Paired-end reads, read2?
-    e.g. (individual name_[12]).fq[fa][.gz].
-    -f: input file type. "fasta", "fastq", "gzfastq", "gzfasta".
+    -i: path to reads with enzyme cut sites of each individual, i.e. read1 files? 
+        name as (individual name).fq[fa][.gz].
+    -o: path to output.
+    -s: path to paired-end reads of each individual, i.e. read2 files?
+        name as (individual name_[12]).fq[fa][.gz].
     -P: PopMaP file.
-    -M: minimum stacks depth.
-    -D: minimum read depth of a locus to export for assembly,
-    can be [lower:upper].
+    -f: type of input files. "fasta", "fastq", "gzfastq", "gzfasta".
+    -M: minimum stack depth.
+    -D: minimum read depth of a locus to export for assembly, also accept [lower:upper].
     -m: mismatch for ustacks.
     -n: mismatch for cstacks.
-    -g: perform gapped assembly in stacks, 1 for ustacks, 2 for cstacks, 3 for all.
+    -g: perform gapped assembly in stacks, 1 for ustacks, 2 for cstacks, 3 for all, 0 turn off.
     -c: individual coverage for a locus.
+    -a: assembler, either "cap3" or "velvet", default cap3.
+    -k: hash length for velvet, default 27.
     -A: turn off assembly.
-    -R: run a single component, accept "ustacks", "cstacks", "assembly".
+    -R: run a single component, accept "ustacks", "cstacks" or "assembly".
     -t: number of threads.
+    
     chooseM: Similarity threshold selection within individual [ustacks].
     chooseN: Similarity threshold selection across individuals [cstacks].
 ```

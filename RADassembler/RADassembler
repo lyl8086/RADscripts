@@ -3,68 +3,77 @@ shopt -s  expand_aliases
 alias tcmd="date '+%A %D %X'"
 t0=$(date +%s)
 Usage='
-   ########################################################################
-    A Pipeline For Assembly of PE RAD-seq (RPE) from Multiple Indidviduals
-   ########################################################################
-	
-    -i: input path. Clean reads containing enzyme site, read1? 
-        e.g. (individual name).fq[fa][.gz].
-    -o: out path. 
-    -s: paired-end path. Paired-end reads, read2?
-        e.g. (individual name_[12]).fq[fa][.gz].
-    -f: input file type. "fasta", "fastq", "gzfastq", "gzfasta".
+
+   ###############################################################################
+   +                         RADassembler 1.10                                   +
+   + A Pipeline For Assembly of PE RAD-seq (RPE) Reads from Multiple Individuals +
+   +                Contact: liyulong12@mails.ucas.ac.cn                         +
+   ###############################################################################
+    
+    -i: path to reads with enzyme cut sites of each individual, i.e. read1 files? 
+        name as (individual name).fq[fa][.gz].
+    -o: path to output.
+    -s: path to paired-end reads of each individual, i.e. read2 files?
+        name as (individual name_[12]).fq[fa][.gz].
     -P: PopMaP file.
-    -M: minimum stacks depth.
-    -D: minimum read depth of a locus to export for assembly,
-        can be [lower:upper].
+    -f: type of input files. "fasta", "fastq", "gzfastq", "gzfasta".
+    -M: minimum stack depth.
+    -D: minimum read depth of a locus to export for assembly, also accept [lower:upper].
     -m: mismatch for ustacks.
     -n: mismatch for cstacks.
-    -g: perform gapped assembly in stacks, 1 for ustacks, 2 for cstacks, 3 for all.
+    -g: perform gapped assembly in stacks, 1 for ustacks, 2 for cstacks, 3 for all, 0 turn off.
     -c: individual coverage for a locus.
+    -a: assembler, either "cap3" or "velvet", default cap3.
+    -k: hash length for velvet, default 27.
     -A: turn off assembly.
-    -R: run a single component, accept "ustacks", "cstacks", "assembly".
+    -R: run a single component, accept "ustacks", "cstacks" or "assembly".
     -t: number of threads.
+    
     chooseM: Similarity threshold selection within individual [ustacks].
     chooseN: Similarity threshold selection across individuals [cstacks].
 '
-while getopts "i:o:s:m:M:n:f:P:D:t:R:c:g:hA" arg
+while getopts "i:o:s:m:M:n:f:P:D:t:R:c:g:a:k:hA" arg
 do
-	case $arg in
-		i)
-			in_path=$OPTARG     #file path.
-			;;
-		o)
-			out_path=$OPTARG    #out path.
-			;;
-		s)
-			samp=$OPTARG        #paired-end file path.
-			;;
-		f)
-			ftyp=$OPTARG        #file type.
-			;;
-		M)
-			minDP=$OPTARG       #minimum stacks depth.
-			;;
-		m)
-			mis=$OPTARG         #mismatch for ustacks.
-			;;
-		n)
-			c_mis=$OPTARG       #mismatch for cstacks.
-			;;
+    case $arg in
+        i)
+            in_path=$OPTARG     #file path.
+            ;;
+        o)
+            out_path=$OPTARG    #out path.
+            ;;
+        s)
+            samp=$OPTARG        #paired-end file path.
+            ;;
+        f)
+            ftyp=$OPTARG        #file type.
+            ;;
+        M)
+            minDP=$OPTARG       #minimum stacks depth.
+            ;;
+        m)
+            mis=$OPTARG         #mismatch for ustacks.
+            ;;
+        n)
+            c_mis=$OPTARG       #mismatch for cstacks.
+            ;;
         g)
             gap=$OPTARG
             case $gap in
                 1)
                     ugap='--gapped'
-                    cgap=''
+                    cgap=0
                     ;;
                 2)
-                    ugap=''
+                    ugap=0
                     cgap='--gapped'
                     ;;
                 3)
                     ugap='--gapped'
                     cgap='--gapped'
+                    ;;
+                0)
+                    ugap=0;
+                    cgap=0;
                     ;;
                 ?)
                     ugap=''
@@ -72,33 +81,39 @@ do
                     ;;
             esac
             ;;
-		P)
-			map=$OPTARG         #PopMap file								
-			;;
-		D)
-			minL=$OPTARG		#minimum loci depth for export reads.
-			;;
-		t)
-			threads=$OPTARG     
-			;;
+        P)
+            map=$OPTARG         #PopMap file
+            ;;
+        D)
+            minL=$OPTARG        #minimum locus depth for the export reads.
+            ;;
+        t)
+            threads=$OPTARG
+            ;;
         c)
             cov=$OPTARG
             ;;
         R)
             run_flg=$OPTARG
             ;;
-		h)
-			echo "$Usage"
-			exit 0
-			;;
+        h)
+            echo "$Usage"
+            exit 0
+            ;;
         A)
             asmb=0
             ;;
-		?)
+        a)
+            assembler=$OPTARG
+            ;;
+        k)
+            kmer=$OPTARG
+            ;;
+        ?)
             echo -e "\033[31m Unknown argument!\033[0m"
-			exit 1
-			;;
-	esac
+            exit 1
+            ;;
+    esac
 done
 
 ###### Functions ######
@@ -114,7 +129,7 @@ iter=0
 function guess_fmt()
 {
 
-	if [ "$ftyp" == 'gzfastq' ];
+    if [ "$ftyp" == 'gzfastq' ];
     then
         suffix='fq.gz'
     elif [ "$ftyp" == 'fastq' ];
@@ -188,10 +203,10 @@ function check_fmt() {
 
 function running_time() {
 
-	t2=$(date +%s)
-	prog=$1
-	echo -e "\n====== $prog running time: $(( $t2 - $t1 )) s ======\n"
-	t1=$t2
+    t2=$(date +%s)
+    prog=$1
+    echo -e "\n====== $prog running time: $(( $t2 - $t1 )) s ======\n"
+    t1=$t2
 }
 
 function read_popmap() {
@@ -213,6 +228,16 @@ function read_ind_order() {
     pop=(`awk '{print $1}' $1`)
 }
 
+function get_version() {
+    ver=`$1 --version 2>&1 |head -1|awk '{print $2}'`
+    f_ver=$(awk -v a=$ver 'BEGIN{ 
+    if (a<2) {print 1} 
+    else if (/Beta/) 
+    {b=gensub(/.+Beta(.+)/,"\\1","g",a);
+    if (b<9) {print 1} else {print 2}}
+    else {print 2}}')
+}
+
 function gplot() {
 local p=$1
 local max1=$2+1
@@ -225,18 +250,18 @@ local leg=$8                            # legend from head.
 local yran=$9
 if [ "$yran" ];
 then
-	max2=${yran#*:}
-	min2=${yran%:*}
-	min2=${min2:="GPVAL_Y_MIN-$max2*0.1"}
+    max2=${yran#*:}
+    min2=${yran%:*}
+    min2=${min2:="GPVAL_Y_MIN-$max2*0.1"}
 else 
-	max2='GPVAL_Y_MAX+GPVAL_Y_MAX*0.1'
-	min2='GPVAL_Y_MIN-GPVAL_Y_MAX*0.1'
+    max2='GPVAL_Y_MAX+GPVAL_Y_MAX*0.1'
+    min2='GPVAL_Y_MIN-GPVAL_Y_MAX*0.1'
 fi
 if [ "$leg" -eq 1 ];
 then
-	autoleg='set key autotitle columnhead'
+    autoleg='set key autotitle columnhead'
 else
-	autoleg='unset key'
+    autoleg='unset key'
 fi
 if [ "$asy" -eq 1 ];
 then
@@ -273,41 +298,46 @@ EOF
 }
 
 chooseM() {
-	local file=$1
-	local out=$2
-	local mis=$3
-	local threads=$4
-	local minDP=$5
+    local file=$1
+    local out=$2
+    local mis=$3
+    local threads=$4
+    local minDP=$5
     local gap=$6
-	local flag=$7
-	local yrange=$8
+    local flag=$7
+    local yrange=$8
+    
+    if [ $# -lt 4 ];
+    then
+        echo
+        echo
+        echo -e "\tSimilarity threshold selection for ustacks within individual\n"
+        echo -e "\tUsage: RADassembler chooseM [infile] [outpath] [max mismatch] [threads] [minDP] [gapped] [replot] [yrange]"
+        echo
+        echo
+        exit 0
+    fi
     local name=`basename $file`
     local name=${name%.f*} # remove suffix f[ast][aq][.gz], may be bugs here.
+    if [ ! -d $out ]; then mkdir $out; fi
     
-	if [ $# -lt 4 ];
-	then
-		echo
-		echo
-		echo -e "\tSimilarity threshold selection for ustacks within individual\n"
-		echo -e "\tUsage: RADassembler chooseM [infile] [outpath] [max mismatch] [threads] [minDP] [gapped] [replot] [yrange]"
-		echo
-		echo
-		exit 0
-	fi
-
-	if [ ! -d $out ]; then mkdir $out; fi
-    if [ "$gap" == 1 ];then gap='--gapped'
-    else gap=''; fi
+    get_version 'ustacks'
+    if [ "$f_ver" == 1 ];
+    then
+        if [ "$gap" == 1 ]; then gap='--gapped'; else gap=''; fi
+    else
+        if [ "$gap" == 0 ]; then gap='--disable-gapped'; else gap=''; fi
+    fi
     
     if [ ! "$minDP" ]; then minDP=3; fi
     
-	if [ -z "$flag" ];
-	then
-		echo -e "Mismatch\t1_allele\t2_alleles\t>=3_alleles" >$out/ustacks.stat
-		for m in `seq 1 $mis`;
-		do
-			ustacks -f $file -o $out -p $threads -M $m -m $minDP -d -N 0 -H -i 1 $gap 2>&1 | tee -a $out/Ustacks.$m.log
-			nparts=`zcat $out/$name*.snps.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'` # test if new version for stacks.
+    if [ -z "$flag" ];
+    then
+        echo -e "Mismatch\t1_allele\t2_alleles\t>=3_alleles" >$out/ustacks.stat
+        for m in `seq 1 $mis`;
+        do
+            ustacks -f $file -o $out -p $threads -M $m -m $minDP -d -N 0 -H -i 1 $gap 2>&1 | tee -a $out/Ustacks.$m.log
+            nparts=`zcat $out/$name*.snps.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'` # test if new version for stacks.
             if [ "$nparts" == 10 ];
             then
                 nloci=`zcat $out/$name*.snps.tsv.gz |tail -1 |cut -f3`
@@ -325,55 +355,57 @@ chooseM() {
                 exit 1;
             fi
         done
-	fi
-	dat="$out/ustacks.stat"
-	plot="'$dat' using 1:2 with linespoints, '$dat' using 1:3 with linespoints, '$dat' using 1:4 with linespoints"
-	
-	gplot "$plot" "$mis" 'Mismatch' 'Number of loci' 'Similarity threshold within individual (ustacks)' 'chooseM_ustacks' 0 1 "$yrange"
+    fi
+    dat="$out/ustacks.stat"
+    plot="'$dat' using 1:2 with linespoints, '$dat' using 1:3 with linespoints, '$dat' using 1:4 with linespoints"
+    
+    gplot "$plot" "$mis" 'Mismatch' 'Number of loci' 'Similarity threshold within individual (ustacks)' 'chooseM_ustacks' 0 1 "$yrange"
 }
 
 chooseN() {
-	# n is mismatch for cstacks
-	local in=$1
-	local out=$2
-	local map=$3
-	local max=$4
-	local threads=$5
+    # n is mismatch for cstacks
+    local in=$1
+    local out=$2
+    local map=$3
+    local max=$4
+    local threads=$5
     local gap=$6
-	local flag=$7                           # flag for replot.
-	local yrange=$8                         # 
+    local flag=$7                           # flag for replot.
+    local yrange=$8                         # 
 
-	tmp=''
-	plot=''
-	if [ $# -lt 5 ];
-	then
-		echo
-		echo
-		echo -e "\tSimilarity threshold selection for cstacks across individuals\n"
-		echo -e "\tUsage: RADassembler chooseN [inpath] [outpath] [popmap] [max mismatch] [threads] [gapped] [replot] [yrange]"
-		echo
-		echo
-		exit 0
-	fi
-	
-    if [ ! -d $out ]; then mkdir $out; fi
-    if [ "$gap" == 1 ];
+    tmp=''
+    plot=''
+    if [ $# -lt 5 ];
     then
-        gap='--gapped'
-    else
-        gap=''
+        echo
+        echo
+        echo -e "\tSimilarity threshold selection for cstacks across individuals\n"
+        echo -e "\tUsage: RADassembler chooseN [inpath] [outpath] [popmap] [max mismatch] [threads] [gapped] [replot] [yrange]"
+        echo
+        echo
+        exit 0
     fi
     
-	if [ -z "$flag" ];
-	then
-		##sort the individuals according to the num of loci.
-		pop=(`cut -f1 $map`)
-		len=${#pop[@]}
-		for ((i=0;i<$len;i++));
-		do
-			indiv=${pop[$i]}
+    if [ ! -d $out ]; then mkdir $out; fi
+    
+    get_version 'cstacks'
+    if [ "$f_ver" == 1 ];
+    then
+        if [ "$gap" == 1 ]; then gap='--gapped'; else gap=''; fi
+    else
+        if [ "$gap" == 0 ]; then gap='--disable_gapped'; else gap=''; fi
+    fi
+    
+    if [ -z "$flag" ];
+    then
+        ##sort the individuals according to the num of loci.
+        pop=(`cut -f1 $map`)
+        len=${#pop[@]}
+        for ((i=0;i<$len;i++));
+        do
+            indiv=${pop[$i]}
             nparts=`zcat $in/$indiv.snps.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'`
-			if [ "$nparts" == 10 ];
+            if [ "$nparts" == 10 ];
             then
                 zcat $in/$indiv.snps.tsv.gz |tail -1 |cut -f3 >>$out/pop.loci
             elif [ "$nparts" == 9 ];
@@ -384,51 +416,51 @@ chooseN() {
                 exit 1;
             fi
             #zcat $in/$indiv.models.tsv.gz |tail -1 |cut -f3 >>$out/pop.loci
-		done
-		paste $map $out/pop.loci >$out/pop.loci.1
-		sort -k3,3nr $out/pop.loci.1 | cut -f1,3 >$out/pop.order
-		rm $out/pop.loci.1 $out/pop.loci
+        done
+        paste $map $out/pop.loci >$out/pop.loci.1
+        sort -k3,3nr $out/pop.loci.1 | cut -f1,3 >$out/pop.order
+        rm $out/pop.loci.1 $out/pop.loci
         pop=(`cut -f1 $out/pop.order`)
         len=${#pop[@]}
-		for ((i=0;i<$len;i++));
-		do
-			indiv=${pop[$i]}
-			samp+="-s $in/$indiv "
-		done
-		##################################################
-		
-		: >$out/catalog.num
-		for m in `seq 1 $max`;
-		do
-			cstacks -n $m -o $out $gap -p $threads $samp 2>&1 | tee $out/Cstacks.$m.log #gapped
-			echo "Mismatch=$m" >$out/$m
-			grep "newly added" $out/Cstacks.$m.log |awk '{print $1}' >>$out/$m
-			nparts=`zcat $out/*catalog.tags.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'`
+        for ((i=0;i<$len;i++));
+        do
+            indiv=${pop[$i]}
+            samp+="-s $in/$indiv "
+        done
+        ##################################################
+        
+        : >$out/catalog.num
+        for m in `seq 1 $max`;
+        do
+            cstacks -n $m -o $out $gap -p $threads $samp 2>&1 | tee $out/Cstacks.$m.log #gapped
+            echo "Mismatch=$m" >$out/$m
+            grep "newly added" $out/Cstacks.$m.log |awk '{print $1}' >>$out/$m
+            nparts=`zcat $out/*catalog.tags.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'`
             if [ "$nparts" == 14 ];
             then
-                zcat $out/*catalog.snps.tsv.gz | tail -1 |cut -f3 >>$out/catalog.num
+                zcat $out/*catalog.snps.tsv.gz | tail -1 | cut -f3 >>$out/catalog.num
             elif [ "$nparts" == 9 ];
             then
-                zcat $out/*catalog.snps.tsv.gz | tail -1 |cut -f2 >>$out/catalog.num
+                zcat $out/*catalog.tags.tsv.gz | grep -v '^#' | wc -l >>$out/catalog.num
             else 
                 echo "Stacks files [$out/*catalog.snps.tsv.gz] error!"
                 exit 1;
             fi
-			tmp+=" $out/$m"
-			plot+="'$out/cstacks.stat' using (\$0+1):$m with linespoints, "
-		done
-	paste $tmp >$out/cstacks.stat
-	rm $tmp
-	else 
-		for m in `seq 1 $max`;
-	do
-		plot+="'$out/cstacks.stat' using (\$0+1):$m with linespoints, "
-	done
-	fi
-	let nind=$(cat $out/cstacks.stat|wc -l)-1
-	gplot "$plot" "$nind" 'Individual index' 'Number of loci' 'Similarity threshold across individuals (cstacks)' 'chooseN_cstacks' 1 1 "$yrange"
-	plot="'$out/catalog.num' using (\$0+1):1 with linespoints"
-	gplot "$plot" "$m" 'Mismatch' 'Number of loci' 'Number of total catalog loci' 'chooseN_cstacks_total' 1 0 "$yrange"
+            tmp+=" $out/$m"
+            plot+="'$out/cstacks.stat' using (\$0+1):$m with linespoints, "
+        done
+    paste $tmp >$out/cstacks.stat
+    rm $tmp
+    else 
+        for m in `seq 1 $max`;
+    do
+        plot+="'$out/cstacks.stat' using (\$0+1):$m with linespoints, "
+    done
+    fi
+    let nind=$(cat $out/cstacks.stat|wc -l)-1
+    gplot "$plot" "$nind" 'Individual index' 'Number of incremental loci' 'Similarity threshold across individuals (cstacks)' 'chooseN_cstacks' 1 1 "$yrange"
+    plot="'$out/catalog.num' using (\$0+1):1 with linespoints"
+    gplot "$plot" "$m" 'Mismatch' 'Number of loci' 'Number of total catalog loci' 'chooseN_cstacks_total' 1 0 "$yrange"
 
 }
 
@@ -439,11 +471,22 @@ function run_ustacks() {
     local threads=$4
     local map=$5
     local len=${#indivs[@]}
+    
+    get_version 'ustacks'
+    if [ ! -z "$ugap" ];
+    then
+        if [ "$ugap" == 0 ];
+        then
+            if [ "$f_ver" == 2 ]; then ugap='--disable-gapped'; else ugap=''; fi
+        else
+            if [ "$f_ver" == 2 ]; then ugap=''; fi
+        fi
+    fi
     for ((i=0;i<$len;i++));
     do
         indiv=${indivs[$i]}
         let j=$i+1
-        # disable haplotype from secondly reads.
+        # disable haplotype from secondry reads.
         ustacks -t $ftyp -f $indiv -H -N 0 $ugap -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $j 2>&1 | tee -a $out_path/stacks/Ustacks.log
         
     done
@@ -462,7 +505,18 @@ function run_cstacks() {
     local batch=$4
     local map=$5
     local threads=$6
-
+    
+    get_version 'cstacks'
+    if [ ! -z "$cgap" ];
+    then
+        if [ "$cgap" == 0 ];
+        then
+            if [ "$f_ver" == 2 ]; then cgap='--disable_gapped'; else cgap=''; fi
+        else
+            if [ "$f_ver" == 2 ]; then cgap=''; fi
+        fi
+    fi
+    
     cstacks -P $in_path -M $map -n $c_mis $cgap -p $threads 2>&1 | tee $out_path/Cstacks.log
     tt=`grep 'cstacks is done.' $out_path/Cstacks.log`
     if [ -z "$tt" ];
@@ -498,6 +552,7 @@ check_files() {
         fi
     done
 }
+
 ###### Preliminary ######
 
 ######Set environment ######
@@ -505,81 +560,46 @@ cur_path=`which RADassembler`
 cur_path=${cur_path%"RADassembler"}
 chmod +x $cur_path/bin/*.pl
 export PATH=$cur_path/bin:$PATH
-#echo "Your Path is:$PATH"
-################################
-
-###### select similarity threshold ######
+if [ ! `which sort_read_pairs_multi.pl 2>/dev/null` ] || [ ! `which CP3_Opti.pl 2>/dev/null` ];
+then
+    echo "Incompleted installation of RADassembler!"
+    exit 1
+fi
+###### Select similarity threshold ######
 if [ "$1" = 'chooseN' ];
 then
-	chooseN $2 $3 $4 $5 $6 $7 $8 $9
+    chooseN $2 $3 $4 $5 $6 $7 $8 $9
     if [ $?==0 ]; then exit 0; else exit 1; fi
 fi
 if [ "$1" = 'chooseM' ]; 
 then
-	chooseM $2 $3 $4 $5 $6 $7 $8 $9
-	if [ $?==0 ]; then exit 0; else exit 1; fi
+    chooseM $2 $3 $4 $5 $6 $7 $8 $9
+    if [ $?==0 ]; then exit 0; else exit 1; fi
 fi
 
 if [ $# -lt 4 ] || [ $1 = -h ];
 then 
-	echo "$Usage"
-	exit 0
-fi
-###### Default parameters ######
-if [ -z "$in_path" ];
-then
-	echo "Please indicate input path!"
-	exit 1
-fi
-if [ -z "$out_path" ];
-then
-	echo "Please indicate out path!"
-	exit 1
-fi
-if [ -z "$samp" ];
-then
-	echo "Please indicate paired-end file path!"
-	exit 1
-fi
-if [ -z "$map" ];
-then
-	echo "Please indicate a PopMap file!"
-	exit 1
+    echo "$Usage"
+    exit 0
 fi
 
-if [ -z "$mis" ];
-then
-	mis=2
-fi
-if [ -z "$c_mis" ];
-then
-	c_mis=1
-fi
-if [ -z "$minDP" ];
-then
-	minDP=3
-fi
-if [ -z "$minL" ];
-then
-	minL=3
-fi
-if [ -z "$asmb" ];
-then
-    asmb=1
-    dasmb='Yes'
-else
-    dasmb='No'
-fi
-if [ -z "$threads" ];
-then
-    threads=1
-fi
-if [ -z "$cov" ];
-then
-    cov=''
-else
-    cov="-c $cov"
-fi
+###### Default parameters ######
+if [ -z "$in_path" ]; then echo "Please indicate input path!"; exit 1; fi
+if [ -z "$out_path" ]; then echo "Please indicate out path!"; exit 1; fi
+if [ -z "$samp" ]; then echo "Please indicate paired-end file path!"; exit 1; fi
+if [ -z "$map" ]; then echo "Please indicate a PopMap file!"; exit 1; fi
+if [ -z "$mis" ]; then mis=2; fi
+if [ -z "$c_mis" ]; then c_mis=1; fi
+if [ -z "$minDP" ]; then minDP=3; fi
+if [ -z "$minL" ]; then minL=3; fi
+if [ -z "$asmb" ]; then asmb=1; dasmb='Yes'; else dasmb='No'; fi
+if [ -z "$threads" ]; then threads=1; fi
+if [ -z "$kmer" ]; then kmer=27; fi
+if [ -z "$cov" ]; then cov=''; else cov="-c $cov"; fi
+if [ -z "$assembler" ]; then assembler='cap3'; elif [ "$assembler" == 'velvet' ]; 
+then if [ ! `which velvetg 2>/dev/null` ] || [ ! `which velveth 2>/dev/null` ];
+then echo "Please install velvet!"; fi; fi
+
 ###### Continue to assembly ######
 if [ "$run_flg" == 'assembly' ];
 then
@@ -587,26 +607,25 @@ then
     t1=$(date +%s)
     goto assembly
 fi 
-
 ######################################
 if [ -d "$out_path" ];
 then 
-	echo -e "\033[47;31m Directory [$out_path] exists!\033[0m"
-    echo -e "\033[47;31m Do you want to delete it ?!\033[0m"
-	read con
-	if [ "$con" == 'y' ] || [ "$con" == 'yes' ];
-	then
-		echo "Deleting $out_path..."
-		rm -rf $out_path
+    echo -e "\033[47;31m Directory [$out_path] exists!\033[0m"
+    echo -e "\033[47;31m Do you really want to delete it?\033[0m"
+    read con
+    if [ "$con" == 'y' ] || [ "$con" == 'yes' ];
+    then
+        echo "Deleting $out_path..."
+        rm -rf $out_path
     elif [ "$con" == 'r' ];
     then
         echo "Continue anyway..."
-	else
-		echo "Directory exists, Please rename it!"
-		exit 1;
-	fi
+    else
+        echo "Directory exists, Please rename it!"
+        exit 1;
+    fi
 fi
-###### Sort the reads by Stacks ######
+###### Sort reads by Stacks ######
 #declare -A pop
 #read_popmap $map
 read_ind_order $map
@@ -633,15 +652,16 @@ fi
 ###### Parameters ######
 par="
 RADassembler Parameters:
-\nNum  of individual                     : $len
-\nPath of reads for clustring[read1]     : $in_path 
+\nNumber  of individuals                 : $len
+\nPath of reads for clustering[read1]     : $in_path 
 \nPath of reads for assembly[paired-end] : $samp
 \nPath of output results                 : $out_path
 \nMinimum depth for stacks               : $minDP
 \nMismatch[ustacks]                      : $mis
 \nMismatch[cstacks]                      : $c_mis
-\nNum of threads                         : $threads
+\nNumber of threads                      : $threads
 \nAssembly                               : $dasmb
+\nAssembler                              : $assembler
 \nDepth for assembly                     : $minL
 "
 echo "======================================================"
@@ -682,8 +702,8 @@ sstacks -P $out_path/stacks/ -M $map -p $threads 2>&1 | tee $out_path/stacks/Sst
 tt=`grep 'sstacks is done.' $out_path/stacks/Sstacks.log`
 if [ -z "$tt" ];
 then
-	echo "sstacks error!"
-	exit 1
+    echo "sstacks error!"
+    exit 1
 fi
 running_time sstacks
 ###############################
@@ -695,21 +715,21 @@ if [ -d "$out_path/reads_export" ];
 then
     echo -e "\033[47;31m Directory [$out_path/reads_export] exists \033[0m"
     echo -e "\033[47;31m Do you want to delete it ? y/n \033[0m"
-	read con
-	if [ "$con" == 'y' ] || [ "$con" == 'yes' ];
-	then
-		echo "Deleting $out_path/reads_export..."
-		rm -rf $out_path/reads_export
+    read con
+    if [ "$con" == 'y' ] || [ "$con" == 'yes' ];
+    then
+        echo "Deleting $out_path/reads_export..."
+        rm -rf $out_path/reads_export
     elif [ "$con" == 'r' ];
     then
         echo "Continue anyway..."
-	else
-		echo "Directory exists, please rename it."
-		exit 1;
-	fi
+    else
+        echo "Directory exists, please rename it."
+        exit 1;
+    fi
 fi
 mkdir -p $out_path/reads_export
-sort_read_pairs.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -m $minL -i ${ftyp#"gz"} $cov 2>&1 | tee $out_path/stacks/export.log
+sort_read_pairs_multi.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -T $threads -m $minL -i ${ftyp#"gz"} $cov 2>&1 | tee $out_path/stacks/export.log
 if [ $? != 0 ];
 then
     echo "Error in exporting fasta files, exiting..."
@@ -721,9 +741,14 @@ running_time 'exporting fasta'
 if [ "$asmb" == 1 ];
 then
     echo "==========================================================="
-    echo "  [`tcmd`] Run local assembly..."
+    echo "  [`tcmd`] Running local assembly..."
     echo "==========================================================="
-    CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/*catalog.tags.tsv* -t $threads
+    CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/*catalog.tags.tsv* -a $assembler -t $threads -k $kmer
+    if [ $? != 0 ];
+    then
+        echo "Error in local assembly, exiting..."
+        exit 1;
+    fi
 fi
 running_time Assembly
 echo "[`tcmd`] Done!"
