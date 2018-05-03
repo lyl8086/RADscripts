@@ -10,12 +10,14 @@ Note: Only for Paired-end RAD-seq reads with random sheared ends (the original R
 
 * [STACKS](http://catchenlab.life.illinois.edu/stacks/)
 
-* Perl module [Parallel::ForkManager](https://metacpan.org/release/Parallel-ForkManager)
+* Perl >= 5.16 and modules including
+  [Parallel::ForkManager](https://metacpan.org/release/Parallel-ForkManager)
+  [Array::Shuffle](https://metacpan.org/release/Array-Shuffle)
 
 ## How to Install
 
 ```
-# wget https://github.com/lyl8086/RADscripts/releases/download/V1.01/RADassembler.tar.gz
+# wget https://github.com/lyl8086/RADscripts/releases/download/V1.10/RADassembler.tar.gz
 # tar -xvf RADassembler.tar.gz
 # cd RADassembler
 # bash INSTALL.sh

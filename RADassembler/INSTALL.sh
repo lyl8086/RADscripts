@@ -14,7 +14,7 @@ Path()
         fi
     done
     IFS=oldIFS
-	return 1
+    return 1
 }
 
 # Test requirements.
@@ -23,53 +23,53 @@ Path()
 perl -le "use Parallel::ForkManager" >& /dev/null
 if [ $? != 0 ];
 then
-	echo "Please install Perl module Parallel::ForkManager."
+    echo "Please install Perl module Parallel::ForkManager."
     echo "Run (sudo) cpan install Parallel::ForkManager"
-	exit 1
+    exit 1
 fi
 perl -le "use Array::Shuffle" >& /dev/null
 if [ $? != 0 ];
 then
-	echo "Please install Perl module Array::Shuffle."
+    echo "Please install Perl module Array::Shuffle."
     echo "Run (sudo) cpan install Array::Shuffle"
-	exit 1
+    exit 1
 fi
 # stacks.
 if [ ! `which ustacks 2>/dev/null` ];
 then
-	echo "ustacks is not installed!"
-	echo "Please download and install it, see http://catchenlab.life.illinois.edu/stacks/"
-	exit 1
+    echo "ustacks is not installed!"
+    echo "Please download and install it, see http://catchenlab.life.illinois.edu/stacks/"
+    exit 1
 fi
 if [ ! `which cstacks 2>/dev/null` ];
 then
-	echo "cstacks is not installed!"
-	echo "Please download and install it, see http://catchenlab.life.illinois.edu/stacks/"
-	exit 1
+    echo "cstacks is not installed!"
+    echo "Please download and install it, see http://catchenlab.life.illinois.edu/stacks/"
+    exit 1
 else
-	cstacks --version 2>/tmp/RADpipeline.log
-	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d "a-zA-Z"`
+    cstacks --version 2>/tmp/RADpipeline.log
+    v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d "a-zA-Z"`
     rm /tmp/RADpipeline.log
-	if [ `awk -v v=$v 'BEGIN {if (v<1.45) {print 1} else {print 0}}'` -ne 0 ];
-	then
-		echo "You need to update stacks to 1.45 or later."
-		exit 1
-	fi
+    if [ `awk -v v=$v 'BEGIN {if (v<1.45) {print 1} else {print 0}}'` -ne 0 ];
+    then
+        echo "You need to update stacks to 1.45 or later."
+        exit 1
+    fi
 fi
 if [ ! `which sstacks 2>/dev/null` ];
 then
-	echo "sstacks is not installed!"
-	echo "Please download and install it, see http://catchenlab.life.illinois.edu/stacks/"
-	exit 1
+    echo "sstacks is not installed!"
+    echo "Please download and install it, see http://catchenlab.life.illinois.edu/stacks/"
+    exit 1
 else
-	sstacks --version 2>/tmp/RADpipeline.log
-	v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d "a-zA-Z"`
+    sstacks --version 2>/tmp/RADpipeline.log
+    v=`cut -d ' ' -f2 /tmp/RADpipeline.log | tr -d "a-zA-Z"`
     rm /tmp/RADpipeline.log
-	if [ `awk -v v=$v 'BEGIN {if (v<1.45) {print 1} else {print 0}}'` -ne 0 ];
-	then
-		echo "You need to update stacks to 1.45 or later."
-		exit 1
-	fi
+    if [ `awk -v v=$v 'BEGIN {if (v<1.45) {print 1} else {print 0}}'` -ne 0 ];
+    then
+        echo "You need to update stacks to 1.45 or later."
+        exit 1
+    fi
 fi
 
 # cap3
@@ -89,8 +89,8 @@ exepath="$HOME/bin"
 
 if [ ! -d "$exepath" ];
 then
-	echo "Make dir $exepath!"
-	mkdir $exepath
+    echo "Make dir $exepath!"
+    mkdir $exepath
 fi
 cp -a RADassembler bin/ $exepath
 chmod +x $exepath/RADassembler
