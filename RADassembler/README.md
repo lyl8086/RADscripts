@@ -19,7 +19,7 @@ Note: Only for Paired-end RAD-seq reads with random sheared ends (the original R
 ## How to Install
 
 ```
-# wget https://github.com/lyl8086/RADscripts/releases/download/V1.10/RADassembler.tar.gz
+# wget https://github.com/lyl8086/RADscripts/releases/download/V1.11/RADassembler.tar.gz
 # tar -xvf RADassembler.tar.gz
 # cd RADassembler
 # bash INSTALL.sh
@@ -54,12 +54,14 @@ Usage:
     -c: individual coverage for a locus.
     -a: assembler, either "cap3" or "velvet", default cap3.
     -k: hash length for velvet, default 27.
+    -x: do not verify multiple matches when exporting fasta files.
     -A: turn off assembly.
     -R: run a single component, accept "ustacks", "cstacks" or "assembly".
     -t: number of threads.
     
     chooseM: Similarity threshold selection within individual [ustacks].
     chooseN: Similarity threshold selection across individuals [cstacks].
+
 ```
 
 ## How to select similarity thresholds within and across individuals
@@ -76,7 +78,7 @@ threads : number of threads used for ustacks.
 minDP : minimum stack depth for ustacks.
 gapped : gapped assembly for ustacks (1: on, 0: off).
 replot : just re-plot graphs using different parameters.
-yrange : ranges for axis used in plot, minimum:maximum.
+yrange : ranges for y-axis used in plot, minimum:maximum.
 ```
 
 * across individuals(cstacks)
@@ -91,7 +93,7 @@ max mismatch: maximum mismatch for cstacks, RADassembler will run a set of misma
 threads: number of threads used in cstacks.
 gapped: turn on gapped assembly? 1:on, 0:off.
 replot: just re-plot graphs.
-yrange: ranges for axis used in plot, minimum:maximum.
+yrange: ranges for y-axis used in plot, minimum:maximum.
 ```
 
 <b>see</b> [samples](samples) for an example run.
@@ -104,7 +106,7 @@ yrange: ranges for axis used in plot, minimum:maximum.
 
 Folder [Assembly](samples/Assembly_out/Assembly)
 
-* <b>collected_final.fa</b>: the final assembled contigs
+* <b>collected_final.fa</b>: the final assembled contigs, with enzyme cut sites at 3' end.
 * <b>assembly_1st</b>: folder contains fasta files of the first assembly
 * <b>assembly_2nd</b>: folder contains fasta files of the second assembly
 * <b>log</b>: folder contains run paramerts

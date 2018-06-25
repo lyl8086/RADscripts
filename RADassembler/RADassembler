@@ -5,7 +5,7 @@ t0=$(date +%s)
 Usage='
 
    ###############################################################################
-   +                         RADassembler 1.10                                   +
+   +                         RADassembler 1.11                                   +
    + A Pipeline For Assembly of PE RAD-seq (RPE) Reads from Multiple Individuals +
    +                Contact: liyulong12@mails.ucas.ac.cn                         +
    ###############################################################################
@@ -25,6 +25,7 @@ Usage='
     -c: individual coverage for a locus.
     -a: assembler, either "cap3" or "velvet", default cap3.
     -k: hash length for velvet, default 27.
+    -x: do not verify multiple matches when exporting fasta files.
     -A: turn off assembly.
     -R: run a single component, accept "ustacks", "cstacks" or "assembly".
     -t: number of threads.
@@ -32,7 +33,7 @@ Usage='
     chooseM: Similarity threshold selection within individual [ustacks].
     chooseN: Similarity threshold selection across individuals [cstacks].
 '
-while getopts "i:o:s:m:M:n:f:P:D:t:R:c:g:a:k:hA" arg
+while getopts "i:o:s:m:M:n:f:P:D:t:R:c:g:a:k:hAx" arg
 do
     case $arg in
         i)
@@ -108,6 +109,9 @@ do
             ;;
         k)
             kmer=$OPTARG
+            ;;
+        x)
+            verify=0
             ;;
         ?)
             echo -e "\033[31m Unknown argument!\033[0m"
@@ -336,7 +340,8 @@ chooseM() {
         echo -e "Mismatch\t1_allele\t2_alleles\t>=3_alleles" >$out/ustacks.stat
         for m in `seq 1 $mis`;
         do
-            ustacks -f $file -o $out -p $threads -M $m -m $minDP -d -N 0 -H -i 1 $gap 2>&1 | tee -a $out/Ustacks.$m.log
+            ustacks -f $file -o $out -p $threads -M $m -m $minDP -d -N 0 -H -i 1 $gap 2>&1 | tee $out/Ustacks.$m.log
+            if [ ${PIPESTATUS[0]} != 0 ]; then echo "ustacks for chooseM error!"; exit 1; fi 
             nparts=`zcat $out/$name*.snps.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'` # test if new version for stacks.
             if [ "$nparts" == 10 ];
             then
@@ -360,6 +365,8 @@ chooseM() {
     plot="'$dat' using 1:2 with linespoints, '$dat' using 1:3 with linespoints, '$dat' using 1:4 with linespoints"
     
     gplot "$plot" "$mis" 'Mismatch' 'Number of loci' 'Similarity threshold within individual (ustacks)' 'chooseM_ustacks' 0 1 "$yrange"
+    
+    exit 0
 }
 
 chooseN() {
@@ -399,23 +406,13 @@ chooseN() {
     if [ -z "$flag" ];
     then
         ##sort the individuals according to the num of loci.
+        : >$out/pop.loci
         pop=(`cut -f1 $map`)
         len=${#pop[@]}
         for ((i=0;i<$len;i++));
         do
             indiv=${pop[$i]}
-            nparts=`zcat $in/$indiv.snps.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'`
-            if [ "$nparts" == 10 ];
-            then
-                zcat $in/$indiv.snps.tsv.gz |tail -1 |cut -f3 >>$out/pop.loci
-            elif [ "$nparts" == 9 ];
-            then
-                zcat $in/$indiv.snps.tsv.gz |tail -1 |cut -f2 >>$out/pop.loci
-            else
-                echo "Stacks file [$in/$indiv.snps.tsv.gz] error!"
-                exit 1;
-            fi
-            #zcat $in/$indiv.models.tsv.gz |tail -1 |cut -f3 >>$out/pop.loci
+            zcat $in/$indiv.tags.tsv.gz |grep -c 'consensus' >>$out/pop.loci
         done
         paste $map $out/pop.loci >$out/pop.loci.1
         sort -k3,3nr $out/pop.loci.1 | cut -f1,3 >$out/pop.order
@@ -433,19 +430,10 @@ chooseN() {
         for m in `seq 1 $max`;
         do
             cstacks -n $m -o $out $gap -p $threads $samp 2>&1 | tee $out/Cstacks.$m.log #gapped
+            if [ ${PIPESTATUS[0]} != 0 ]; then echo "cstacks for chooseN error!"; exit 1; fi 
             echo "Mismatch=$m" >$out/$m
             grep "newly added" $out/Cstacks.$m.log |awk '{print $1}' >>$out/$m
-            nparts=`zcat $out/*catalog.tags.tsv.gz | head -2 | tail -1 | awk -F "\t" '{print NF}'`
-            if [ "$nparts" == 14 ];
-            then
-                zcat $out/*catalog.snps.tsv.gz | tail -1 | cut -f3 >>$out/catalog.num
-            elif [ "$nparts" == 9 ];
-            then
-                zcat $out/*catalog.tags.tsv.gz | grep -v '^#' | wc -l >>$out/catalog.num
-            else 
-                echo "Stacks files [$out/*catalog.snps.tsv.gz] error!"
-                exit 1;
-            fi
+            zcat $out/*catalog.tags.tsv.gz | grep -v '^#' -c >>$out/catalog.num
             tmp+=" $out/$m"
             plot+="'$out/cstacks.stat' using (\$0+1):$m with linespoints, "
         done
@@ -461,7 +449,7 @@ chooseN() {
     gplot "$plot" "$nind" 'Individual index' 'Number of incremental loci' 'Similarity threshold across individuals (cstacks)' 'chooseN_cstacks' 1 1 "$yrange"
     plot="'$out/catalog.num' using (\$0+1):1 with linespoints"
     gplot "$plot" "$m" 'Mismatch' 'Number of loci' 'Number of total catalog loci' 'chooseN_cstacks_total' 1 0 "$yrange"
-
+    exit 0
 }
 
 function run_ustacks() {
@@ -471,7 +459,7 @@ function run_ustacks() {
     local threads=$4
     local map=$5
     local len=${#indivs[@]}
-    
+    if [ $len == 0 ]; then echo "No files for running ustacks!"; exit 1; fi
     get_version 'ustacks'
     if [ ! -z "$ugap" ];
     then
@@ -487,15 +475,13 @@ function run_ustacks() {
         indiv=${indivs[$i]}
         let j=$i+1
         # disable haplotype from secondry reads.
+        echo
+        echo "Processing sample $indiv [$j of $len]..."
+        echo
         ustacks -t $ftyp -f $indiv -H -N 0 $ugap -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $j 2>&1 | tee -a $out_path/stacks/Ustacks.log
+        if [ ${PIPESTATUS[0]} != 0 ]; then echo -e "\033[47;31m ustacks error! Quitting...\033[0m"; exit 1; fi 
         
     done
-    tt=`grep 'ustacks is done.' $out_path/stacks/Ustacks.log`
-    if [ -z "$tt" ];
-    then
-        echo -e "\033[47;31m Ustacks error! Quitting...\033[0m"
-        exit 1
-    fi
 }
 
 function run_cstacks() {
@@ -518,12 +504,7 @@ function run_cstacks() {
     fi
     
     cstacks -P $in_path -M $map -n $c_mis $cgap -p $threads 2>&1 | tee $out_path/Cstacks.log
-    tt=`grep 'cstacks is done.' $out_path/Cstacks.log`
-    if [ -z "$tt" ];
-    then
-        echo "cstacks error!"
-        exit 1
-    fi
+    if [ ${PIPESTATUS[0]} != 0 ]; then echo -e "\033[47;31m cstacks error! Quitting...\033[0m"; exit 1; fi 
 }
 
 check_files() {
@@ -569,12 +550,12 @@ fi
 if [ "$1" = 'chooseN' ];
 then
     chooseN $2 $3 $4 $5 $6 $7 $8 $9
-    if [ $?==0 ]; then exit 0; else exit 1; fi
+    if [ $? == 0 ]; then exit 0; else exit 1; fi
 fi
 if [ "$1" = 'chooseM' ]; 
 then
     chooseM $2 $3 $4 $5 $6 $7 $8 $9
-    if [ $?==0 ]; then exit 0; else exit 1; fi
+    if [ $? == 0 ]; then exit 0; else exit 1; fi
 fi
 
 if [ $# -lt 4 ] || [ $1 = -h ];
@@ -595,10 +576,13 @@ if [ -z "$minL" ]; then minL=3; fi
 if [ -z "$asmb" ]; then asmb=1; dasmb='Yes'; else dasmb='No'; fi
 if [ -z "$threads" ]; then threads=1; fi
 if [ -z "$kmer" ]; then kmer=27; fi
+if [ "$verify" == 0 ]; then verify='-x'; fi
 if [ -z "$cov" ]; then cov=''; else cov="-c $cov"; fi
 if [ -z "$assembler" ]; then assembler='cap3'; elif [ "$assembler" == 'velvet' ]; 
 then if [ ! `which velvetg 2>/dev/null` ] || [ ! `which velveth 2>/dev/null` ];
 then echo "Please install velvet!"; fi; fi
+if [ "$assembler" != 'cap3' ] && [ "$assembler" != 'cap3' ];
+then echo "Assembler can only be cap3 or velvet."; exit 1; fi
 
 ###### Continue to assembly ######
 if [ "$run_flg" == 'assembly' ];
@@ -626,8 +610,6 @@ then
     fi
 fi
 ###### Sort reads by Stacks ######
-#declare -A pop
-#read_popmap $map
 read_ind_order $map
 mkdir -p $out_path/stacks
 len=${#pop[@]}
@@ -640,20 +622,20 @@ if [ "$run_flg" == 'ustacks' ];
 then
     echo "Single run of ustacks is starting."
     run_ustacks $out_path $mis $minDP $threads
-    if [ $?==0 ]; then echo "Single run of ustacks is done."; exit 0; else exit 1; fi    
+    if [ $? == 0 ]; then echo "Single run of ustacks is done."; exit 0; else exit 1; fi    
 fi
 if [ "$run_flg" == 'cstacks' ];
 then
     echo "Single run of cstacks is starting."
     run_cstacks $in_path $out_path $c_mis 1 $map $threads
-    if [ $?==0 ]; then echo "Single run of cstacks is done."; exit 0; else exit 1; fi
+    if [ $? == 0 ]; then echo "Single run of cstacks is done."; exit 0; else exit 1; fi
 fi   
 #########################
 ###### Parameters ######
 par="
 RADassembler Parameters:
 \nNumber  of individuals                 : $len
-\nPath of reads for clustering[read1]     : $in_path 
+\nPath of reads for clustering[read1]    : $in_path 
 \nPath of reads for assembly[paired-end] : $samp
 \nPath of output results                 : $out_path
 \nMinimum depth for stacks               : $minDP
@@ -699,12 +681,7 @@ echo "======================================================"
 echo "  [`tcmd`] Running sstacks..."
 echo "======================================================"
 sstacks -P $out_path/stacks/ -M $map -p $threads 2>&1 | tee $out_path/stacks/Sstacks.log
-tt=`grep 'sstacks is done.' $out_path/stacks/Sstacks.log`
-if [ -z "$tt" ];
-then
-    echo "sstacks error!"
-    exit 1
-fi
+if [ ${PIPESTATUS[0]} != 0 ]; then echo -e "\033[47;31m sstacks error, exiting...\033[0m"; exit 1; fi 
 running_time sstacks
 ###############################
 ###### export read pairs ######
@@ -729,12 +706,8 @@ then
     fi
 fi
 mkdir -p $out_path/reads_export
-sort_read_pairs_multi.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -T $threads -m $minL -i ${ftyp#"gz"} $cov 2>&1 | tee $out_path/stacks/export.log
-if [ $? != 0 ];
-then
-    echo "Error in exporting fasta files, exiting..."
-    exit 1;
-fi
+sort_read_pairs_multi.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -T $threads -m $minL -i ${ftyp#"gz"} $cov $verify 2>&1 | tee $out_path/stacks/export.log
+if [ ${PIPESTATUS[0]} != 0 ]; then echo "Error in exporting fasta files, exiting...";exit 1;fi
 ##########################
 running_time 'exporting fasta'
 ###### run assembly ######
@@ -743,12 +716,8 @@ then
     echo "==========================================================="
     echo "  [`tcmd`] Running local assembly..."
     echo "==========================================================="
-    CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/*catalog.tags.tsv* -a $assembler -t $threads -k $kmer
-    if [ $? != 0 ];
-    then
-        echo "Error in local assembly, exiting..."
-        exit 1;
-    fi
+    CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/*catalog.tags.tsv* -a $assembler -t $threads -k $kmer -d
+    if [ $? != 0 ]; then echo "Error in local assembly, exiting..."; exit 1; fi
 fi
 running_time Assembly
 echo "[`tcmd`] Done!"
