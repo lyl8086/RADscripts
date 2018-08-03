@@ -1,0 +1,13 @@
+Loading catalog matches, file  1 of  3 [fishsim-1]
+Loading catalog matches, file  2 of  3 [fishsim-2]
+Loading catalog matches, file  3 of  3 [fishsim-3]
+Identifying catalog loci that have more than one match from a single sample...done
+  These loci will be excluded when collating paired-end reads;
+  A list of them has been recorded: tmp_out/Assembly_out/reads_export/sort_read_pairs.log
+1802 total catalog loci; 191 will be excluded, processing 1611 loci.
+Processing file  1 of  3 [fishsim-1]
+Processing file  2 of  3 [fishsim-2]
+Processing file  3 of  3 [fishsim-3]
+Combining reads...done.
+Printing results...done.
+A total of 1586 loci were exported, with a mean depth of 64.24.

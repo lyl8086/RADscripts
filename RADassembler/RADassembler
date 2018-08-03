@@ -709,7 +709,7 @@ mkdir -p $out_path/reads_export
 sort_read_pairs_multi.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -T $threads -m $minL -i ${ftyp#"gz"} $cov $verify 2>&1 | tee $out_path/stacks/export.log
 if [ ${PIPESTATUS[0]} != 0 ]; then echo "Error in exporting fasta files, exiting...";exit 1;fi
 ##########################
-running_time 'exporting fasta'
+running_time 'Exporting fasta'
 ###### run assembly ######
 if [ "$asmb" == 1 ];
 then

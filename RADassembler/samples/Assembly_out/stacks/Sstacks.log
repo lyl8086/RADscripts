@@ -1,0 +1,42 @@
+Searching for matches by sequence identity...
+  Parsing tmp_out/Assembly_out/stacks/batch_1.catalog.tags.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/batch_1.catalog.snps.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/batch_1.catalog.alleles.tsv.gz
+
+Processing sample 'tmp_out/Assembly_out/stacks/fishsim-1' [1 of 3]
+  Parsing tmp_out/Assembly_out/stacks/fishsim-1.tags.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-1.snps.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-1.alleles.tsv.gz
+Searching for sequence matches...
+1719 stacks compared against the catalog containing 1802 loci.
+  1719 matching loci, 0 contained no verified haplotypes.
+  0 loci matched more than one catalog locus and were excluded.
+  0 loci contained SNPs unaccounted for in the catalog and were excluded.
+  3004 total haplotypes examined from matching loci, 3004 verified.
+Outputing to file tmp_out/Assembly_out/stacks/fishsim-1.matches.tsv.gz
+
+Processing sample 'tmp_out/Assembly_out/stacks/fishsim-2' [2 of 3]
+  Parsing tmp_out/Assembly_out/stacks/fishsim-2.tags.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-2.snps.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-2.alleles.tsv.gz
+Searching for sequence matches...
+1740 stacks compared against the catalog containing 1802 loci.
+  1636 matching loci, 1 contained no verified haplotypes.
+  0 loci matched more than one catalog locus and were excluded.
+  1 loci contained SNPs unaccounted for in the catalog and were excluded.
+  2906 total haplotypes examined from matching loci, 2905 verified.
+Outputing to file tmp_out/Assembly_out/stacks/fishsim-2.matches.tsv.gz
+
+Processing sample 'tmp_out/Assembly_out/stacks/fishsim-3' [3 of 3]
+  Parsing tmp_out/Assembly_out/stacks/fishsim-3.tags.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-3.snps.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-3.alleles.tsv.gz
+Searching for sequence matches...
+1719 stacks compared against the catalog containing 1802 loci.
+  1605 matching loci, 2 contained no verified haplotypes.
+  2 loci matched more than one catalog locus and were excluded.
+  0 loci contained SNPs unaccounted for in the catalog and were excluded.
+  2864 total haplotypes examined from matching loci, 2860 verified.
+Outputing to file tmp_out/Assembly_out/stacks/fishsim-3.matches.tsv.gz
+
+sstacks is done.

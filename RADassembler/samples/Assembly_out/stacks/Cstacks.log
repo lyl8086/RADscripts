@@ -1,0 +1,41 @@
+cstacks parameters selected:
+  Database/Batch ID: 1
+  Loci matched based on sequence identity.
+  Number of mismatches allowed between stacks: 6
+  Gapped alignments: disabled
+Constructing catalog from 3 samples.
+
+Initializing new catalog...
+  Parsing tmp_out/Assembly_out/stacks/fishsim-1.tags.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-1.snps.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-1.alleles.tsv.gz
+  1719 loci were newly added to the catalog.
+
+Processing sample tmp_out/Assembly_out/stacks/fishsim-2 [2 of 3]
+  Parsing tmp_out/Assembly_out/stacks/fishsim-2.tags.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-2.snps.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-2.alleles.tsv.gz
+Searching for sequence matches...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+  1719 loci in the catalog, 180044 kmers in the catalog hash.
+Merging matches into catalog...
+  1564 loci were matched to a catalog locus.
+  0 loci were matched to a catalog locus using gapped alignments.
+  70 loci were newly added to the catalog.
+  106 loci matched more than one catalog locus and were excluded.
+
+Processing sample tmp_out/Assembly_out/stacks/fishsim-3 [3 of 3]
+  Parsing tmp_out/Assembly_out/stacks/fishsim-3.tags.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-3.snps.tsv.gz
+  Parsing tmp_out/Assembly_out/stacks/fishsim-3.alleles.tsv.gz
+Searching for sequence matches...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+  1789 loci in the catalog, 238372 kmers in the catalog hash.
+Merging matches into catalog...
+  1590 loci were matched to a catalog locus.
+  0 loci were matched to a catalog locus using gapped alignments.
+  13 loci were newly added to the catalog.
+  116 loci matched more than one catalog locus and were excluded.
+
+Writing catalog in directory 'tmp_out/Assembly_out/stacks/'.
+cstacks is done.
