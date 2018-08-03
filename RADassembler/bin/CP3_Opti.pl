@@ -1,14 +1,14 @@
 #!/usr/bin/env perl
-#@ Yu-Long Li
+#@ Yulong Li
 use strict; 
 use warnings; 
 use Parallel::ForkManager;
 use Getopt::Long;
 use Storable;
-use constant V => 180605;
+use constant V => 180731;
 
 my (@files, $file, $in_tags, $sub_lst, $sec_asmb);
-my ($in_path, $out_path, $loci, $out_seqs);
+my ($in_path, $out_path, $loci, $out_seqs, $time);
 my $num_threads = 1;
 my $assembler   = 'cap3';
 my $kmer        = 27;
@@ -59,12 +59,12 @@ if (! -e "$out_path/assembly_1st") {
     
 } else {
     print STDERR "Out path exists, will delete fasta files if any...\n";
-    `find $out_path/assembly_1st/ -name "*.fa" | xargs rm -rf`;
+    `find $out_path/assembly_1st/ -name "*.fa" | xargs -P $num_threads rm -rf`;
 }
 
 ##delete any tmp files;
 
-`find $in_path/ -name "*cap*" |xargs rm -rf`;
+`find $in_path/ -name "*cap*" | xargs -P $num_threads rm -rf`;
 
 $assembler = ($assembler eq 'velvet') ? 'velvet' : 'cap3';
 $kmer      = $kmer ? $kmer : 27;
@@ -113,7 +113,8 @@ parse_tags();
 my $thread_m = new Parallel::ForkManager($num_threads);
 unless ($sec_asmb) {
     
-    print "Starting the first run...\n";
+    $time = localtime;
+    print "[$time] Starting the first run...\n";
     my $total = @files;
     my $i;
     foreach $file (@files){
@@ -134,16 +135,17 @@ unless ($sec_asmb) {
             run_hybrid_assembly($file, $in_path, "$out_path/assembly_1st", 1, $cmd);
         }
         print STDERR "  Assembling $i of $total \r";
-        `rm $in_path/$file` if $dat;
         $thread_m->finish;
         
     }
     $thread_m->wait_all_children;
+    `find $in_path -name "*.fa"|xargs -P $num_threads rm -rf` if $dat;
 }
 
 ## 2nd assembly;
-print "\nStarting the second run...\n";
-`find $out_path/assembly_1st/ -name "*cap*" |xargs rm -rf`;
+$time = localtime;
+print "\n[$time] Starting the second run...\n";
+`find $out_path/assembly_1st/ -name "*cap*" | xargs -P $num_threads rm -rf` if $sec_asmb;
 `echo "cap3 $cmd" > $out_path/log/assembly.2par`;
 
 if (! -e "$out_path/assembly_2nd") {
@@ -152,7 +154,7 @@ if (! -e "$out_path/assembly_2nd") {
     
 } else {
     print STDERR "Out path exists, will delete fasta files if any...\n";
-    `find $out_path/assembly_2nd/ -name "*.fa" | xargs rm -rf`;
+    `find $out_path/assembly_2nd/ -name "*.fa" | xargs -P $num_threads rm -rf`;
 }
 
 if ($dat && $sec_asmb) {
@@ -193,55 +195,63 @@ foreach $file (@files){
 $thread_m->wait_all_children;
 
 ## store fasta files of the 1st assembly.
-store_dat("$out_path/assembly_1st/", \@files, 'reads_1st.dat') if ($dat && !$sec_asmb);
+$time = localtime;
+print "\n[$time] Storing the 1st assembled results...";
+store_dat("$out_path/assembly_1st/", "$out_path/assembly_1st/", \@files, 'reads_1st.dat') if ($dat && !$sec_asmb);
+print "done.\n";
 
 ## get the list of second assembly files;
 get_flist("$out_path/assembly_2nd", $out_path, "2nd_assembled","fa");
 die "No fasta files in $out_path/assembly_2nd/.\n" if scalar(@files) == 0;
 
-## collect the final results, and delet useless files;
-print "\nStarting to collect the final contigs...\n";
-parse_fasta(\@files, "$out_path/assembly_2nd", "$out_path", "collected_final.fa");
-
 ## store fasta files of the 2nd assembly.
-store_dat("$out_path/assembly_2nd/", \@files, 'reads_2nd.dat') if $dat;
+$time = localtime;
+print "\n[$time] Storing the 2nd assembled results...";
+store_dat("$out_path/assembly_2nd/", "$out_path/assembly_2nd/", \@files, 'reads_2nd.dat') if $dat;
+print "done.\n";
 
+## collect the final results, and delet useless files;
+$time = localtime;
+print "\n[$time] Starting to collect the final contigs...";
+if (1) {
+    my $in_path = $out_path . "/" . "assembly_2nd";
+    my $name_fa = "collected_final.fa";
+    if ($dat) {
+        my $in_fa = "$in_path/reads_2nd.dat";
+        retrieve_dat($in_fa, $out_path, $name_fa, 0);
+    } else {
+        parse_fasta(\@files, $in_path, $out_path, $name_fa);
+    }
+    print "done.\n";
+}
 ## if collect contigs for reads2;
 if ($collect) {
     
-    my $in_fa = $out_path . "/" . "assembly_1st";
-    my $out_fa = $out_path;
+    my $in_path = $out_path . "/" . "assembly_1st";
     my $name_fa = "collected_reads1.fa";
     if ($dat) {
-        $out_seqs = retrieve("$out_path/assembly_1st/reads_1st.dat");
-        open(my $out_fh, ">$out_fa/$name_fa") or die "$!";
-        foreach my $locus (keys %{$out_seqs}) {
-            my $seq = $out_seqs->{$locus};
-            $seq    =~ s/^>/>$locus\./;
-            $seq    =~ s/Consensus.*[\r\n]+/Consensus/g;
-            print $out_fh $seq;
-        }
-        close $out_fh;
+        my $in_fa = "$in_path/reads_1st.dat";
+        retrieve_dat($in_fa, $out_path, $name_fa, 1);
     } else {
-        get_flist("$out_path/assembly_1st",$out_path,"collect_reads1","fa");
+        get_flist($in_path, $out_path,"collect_reads1","fa");
     
-        parse_fasta(\@files, $in_fa, $out_fa, $name_fa, 1);
+        parse_fasta(\@files, $in_path, $out_path, $name_fa, 1);
     }
     
-    `sed -i /Consensus/d  $out_fa/$name_fa`;
+    `sed -i /Consensus/d  $out_path/$name_fa`;
     
 }
 
 
 sub parse_fasta {
 
-    my ($files, $in_fa, $out_fa, $name_fa, $flag) =@_;
+    my ($files, $in_path, $out_path, $name_fa, $flag) =@_;
     my ($in_fh, $out_fh, $file);
     
-    open ($out_fh, ">$out_fa/$name_fa") or die "$!";
+    open ($out_fh, ">$out_path/$name_fa") or die "$!";
     
     foreach $file (@$files) {
-        open ($in_fh, "<$in_fa/$file") or die "$!";
+        open ($in_fh, "<$in_path/$file") or die "$!";
         while (<$in_fh>) {
             if (defined $flag && $_ =~ /Consensus/) {
                 # if collect contigs only for read2.
@@ -309,17 +319,33 @@ sub parse_tags {
 }
 
 sub store_dat {
-    my ($in_path, $files, $name) = @_;
+    my ($in_path, $out_path, $files, $name) = @_;
     my $out_seqs = {};
     foreach (@$files) {
         my $file = $_;
+        my $seq  = '';
         open(my $in_fh, "$in_path/$file");
-        my @seq = <$in_fh>;
+        sysread($in_fh, $seq, 1e10);
         close $in_fh;
-        $out_seqs->{substr($file, 0, -3)} = join('', @seq);
-        `rm $in_path/$file`;
+        $out_seqs->{substr($file, 0, -3)} = $seq;
     }
-    store $out_seqs, "$in_path/$name";
+    store $out_seqs, "$out_path/$name";
+    `find $in_path -name "*.fa"|xargs -P $num_threads rm -rf`;
+}
+
+sub retrieve_dat {
+    
+    my ($in_fa, $out_path, $name_fa, $flag) = @_;
+    my $out_seqs = retrieve($in_fa);
+    open(my $out_fh, ">$out_path/$name_fa") or die "$!";
+    foreach my $locus (keys %{$out_seqs}) {
+        my $seq = $out_seqs->{$locus};
+        $seq    =~ s/>/>$locus\./g;
+        $seq    =~ s/[^\d]\n[^>]//ig; # seq to one line.
+        $seq    =~ s/Consensus.*[\r\n]+/Consensus/g if $flag;
+        print $out_fh $seq;
+    }
+    close $out_fh;
 }
 
 sub run_assembly {
@@ -343,7 +369,6 @@ sub run_assembly {
                 open(my $out_fh, ">>$out_path/$file") or die "$!";
                 print $out_fh $seq;
                 close $out_fh;
-                #`echo "$seq" >> $out_path/$file`;
                 link_fasta($out_path, $out_path, $file);
             }
         }
@@ -374,9 +399,9 @@ sub run_hybrid_assembly {
     
     my ($file, $in_path, $out_path, $run, $cmd) = @_;
     # Run Velvet assembly;
-    `velveth $out_path/$file\_out $kmer -fasta -short $in_path/$file`;
-    `velvetg $out_path/$file\_out -cov_cutoff auto -exp_cov auto -clean yes`;
-    `mv $out_path/$file\_out/contigs.fa $out_path/$file`;
+    `velveth $out_path/$file\_out $kmer -fasta -short $in_path/$file && \
+    velvetg $out_path/$file\_out -cov_cutoff auto -exp_cov auto -clean yes && \
+    mv $out_path/$file\_out/contigs.fa $out_path/$file`;
     
     my $locus = substr($file, 0, -3);
     my $seq = $seqs{$locus};
