@@ -19,8 +19,7 @@ Note: Only for Paired-end RAD-seq reads with random sheared ends (the original R
 ## How to Install
 
 ```
-# wget https://github.com/lyl8086/RADscripts/releases/download/V1.11/RADassembler.tar.gz
-# tar -xvf RADassembler.tar.gz
+# svn export https://github.com/lyl8086/RADscripts/trunk/RADassembler 
 # cd RADassembler
 # bash INSTALL.sh
 # if you want to run a test, run bash TEST.sh
