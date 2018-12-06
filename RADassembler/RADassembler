@@ -1,11 +1,12 @@
 #!/bin/bash
 shopt -s  expand_aliases 
 alias tcmd="date '+%A %D %X'"
+readonly VERSION='RADassembler 1.21'
 t0=$(date +%s)
 Usage='
 
    ###############################################################################
-   +                         RADassembler 1.11                                   +
+   +                         RADassembler 1.21                                   +
    + A Pipeline For Assembly of PE RAD-seq (RPE) Reads from Multiple Individuals +
    +                Contact: liyulong12@mails.ucas.ac.cn                         +
    ###############################################################################
@@ -29,11 +30,12 @@ Usage='
     -A: turn off assembly.
     -R: run a single component, accept "ustacks", "cstacks" or "assembly".
     -t: number of threads.
-    
+    -v: version
     chooseM: Similarity threshold selection within individual [ustacks].
     chooseN: Similarity threshold selection across individuals [cstacks].
+    r80: Parameters optimization for m and M of Stacks using method of Paris et al. 2017 
 '
-while getopts "i:o:s:m:M:n:f:P:D:t:R:c:g:a:k:hAx" arg
+while getopts "i:o:s:m:M:n:f:P:D:t:R:c:g:a:k:hAxv" arg
 do
     case $arg in
         i)
@@ -112,6 +114,10 @@ do
             ;;
         x)
             verify=0
+            ;;
+        v)
+            echo "$VERSION"
+            exit 0
             ;;
         ?)
             echo -e "\033[31m Unknown argument!\033[0m"
@@ -302,6 +308,7 @@ EOF
 }
 
 chooseM() {
+    
     local file=$1
     local out=$2
     local mis=$3
@@ -324,7 +331,7 @@ chooseM() {
     local name=`basename $file`
     local name=${name%.f*} # remove suffix f[ast][aq][.gz], may be bugs here.
     if [ ! -d $out ]; then mkdir $out; fi
-    
+    set -e
     get_version 'ustacks'
     if [ "$f_ver" == 1 ];
     then
@@ -363,14 +370,14 @@ chooseM() {
     fi
     dat="$out/ustacks.stat"
     plot="'$dat' using 1:2 with linespoints, '$dat' using 1:3 with linespoints, '$dat' using 1:4 with linespoints"
-    
+    set +e
     gplot "$plot" "$mis" 'Mismatch' 'Number of loci' 'Similarity threshold within individual (ustacks)' 'chooseM_ustacks' 0 1 "$yrange"
-    
     exit 0
 }
 
 chooseN() {
     # n is mismatch for cstacks
+    
     local in=$1
     local out=$2
     local map=$3
@@ -394,7 +401,7 @@ chooseN() {
     fi
     
     if [ ! -d $out ]; then mkdir $out; fi
-    
+    set -e
     get_version 'cstacks'
     if [ "$f_ver" == 1 ];
     then
@@ -446,13 +453,210 @@ chooseN() {
     done
     fi
     let nind=$(cat $out/cstacks.stat|wc -l)-1
+    set +e
     gplot "$plot" "$nind" 'Individual index' 'Number of incremental loci' 'Similarity threshold across individuals (cstacks)' 'chooseN_cstacks' 1 1 "$yrange"
     plot="'$out/catalog.num' using (\$0+1):1 with linespoints"
     gplot "$plot" "$m" 'Mismatch' 'Number of loci' 'Number of total catalog loci' 'chooseN_cstacks_total' 1 0 "$yrange"
     exit 0
+    
+}
+
+function iter_pars() {
+    
+    local m=$1 # pars ro iteration
+    local n=$2 # name
+    local in_path=$3
+    local out_path=$4
+    local pop=$5
+    local threads=$6
+    
+    f_ver=1
+    get_version ustacks
+    if [ $n == 'min' ];then a=`seq 2 $m`;m="-m"; elif [ $n == 'Mis' ]; then a=`seq 1 $m`; m="-M"; fi
+    for i in $a
+    do
+        if [ $f_ver == 1 ]; then 
+            denovo_map.pl -b 1 -o $out_path -O $pop -T $threads --samples $in_path $m $i -S -i 1 -X "populations:-r 0.4"
+        elif [ $f_ver == 2 ]; then
+            denovo_map.pl -o $out_path --popmap $pop -T $threads --samples $in_path $m $i -X "populations:-r 0.4"
+            # snps distribs in stacks2
+            sed -n '/BEGIN snps_per_loc_postfilters/, /END snps_per_loc_postfilters/p' $out_path/populations.log.distribs \
+            | tail -n+3 | head -n-1 | sed 's/n_snps/#n_snps/'>>$out_path/populations.log
+        else
+            echo inappropriate version of stacks: $f_ver
+        fi
+        mv $out_path/*denovo_map.log $out_path/${n}$i.denovo.log
+        mv $out_path/*populations.log $out_path/${n}$i.r40.log
+        # r60
+        populations -P $out_path -M $pop -t $threads -r 0.6
+        if [ $f_ver == 2 ]; then
+            sed -n '/BEGIN snps_per_loc_postfilters/, /END snps_per_loc_postfilters/p' $out_path/populations.log.distribs \
+            | tail -n+3 | head -n-1 | sed 's/n_snps/#n_snps/'>>$out_path/populations.log
+        fi
+        mv $out_path/*populations.log $out_path/${n}$i.r60.log
+        # r80
+        populations -P $out_path -M $pop -t $threads -r 0.8
+        if [ $f_ver == 2 ]; then
+            sed -n '/BEGIN snps_per_loc_postfilters/, /END snps_per_loc_postfilters/p' $out_path/populations.log.distribs \
+            | tail -n+3 | head -n-1 | sed 's/n_snps/#n_snps/'>>$out_path/populations.log
+        fi
+        mv $out_path/*populations.log $out_path/${n}$i.r80.log
+        
+        # stat
+        # 1. depth of coverage
+        sed -n '/Depths of Coverage for Processed Samples:/, /cstacks/p' $out_path/${n}$i.denovo.log \
+        | awk -v d=$i '/(.+):\s+(.+)x$/ {gsub(/x/,"",$2); print d,$2}' >>$out_path/${n}_depth.stat
+        # 2. num of loci (t) and
+        # 3. num of polymorphic loci (p) and
+        # 4. num of snps (e)
+        for f in `ls $out_path/*.snps.tsv.gz`
+        do
+            nparts=`zcat $f | head -2 | tail -1 | awk -F "\t" '{print NF}'`
+            if [ $nparts == 10 ];
+            # old version
+            then
+                zcat $f | awk -v d=$i '{t=$3; if ($5=="E") {e++;p[t]++}} END{print d,t,length(p),e}' >>$out_path/${n}_isnps.stat
+            elif [ "$nparts" == 9 ];
+            # new version
+            then
+                zcat $f | awk -v d=$i '{t=$2; if ($4=="E") {e++;p[t]++}} END{print d,t,length(p),e}' >>$out_path/${n}_isnps.stat
+            fi
+        done
+        # overall
+        awk -v d=$i '{if (!/^#n_snps/&&c!=1) {next;} else {c=1} t+=$2;e+=$1*$2;if ($1!=0) {p+=$2}} END{print d,t,p,e}' $out_path/$n$i.r40.log >>$out_path/${n}_r40.stat
+        awk -v d=$i '{if (!/^#n_snps/&&c!=1) {next;} else {c=1} t+=$2;e+=$1*$2;if ($1!=0) {p+=$2}} END{print d,t,p,e}' $out_path/$n$i.r60.log >>$out_path/${n}_r60.stat
+        awk -v d=$i '{if (!/^#n_snps/&&c!=1) {next;} else {c=1} t+=$2;e+=$1*$2;if ($1!=0) {p+=$2}} END{print d,t,p,e}' $out_path/$n$i.r80.log >>$out_path/${n}_r80.stat
+        
+    done
+}
+
+function run_r80() {
+    
+    local in_path=$1
+    local out_path=$2
+    local pop=$3
+    local m=$4    # depth
+    local M=$5    # mismatch
+    local t=$6
+    if [ $# -lt 6 ];
+    then
+        echo
+        echo
+        echo -e "\tParameters optimization for m and M of stacks\n"
+        echo -e "\tUsage: RADassembler r80 [inpath] [outpath] [popmap] [maxDepth] [maxMismatch] [threads]\n"
+        echo
+        echo
+        exit 0
+    fi 
+    ######
+    # XXX.snps.tsv: Model calls from each locus
+    # Sql_ID Sample_ID Locus_ID Column 	Type Likelihood Rank_1 Rank_2 Rank_3 Rank_4
+    
+    # XXX.tags.tsv: Assembled loci
+    # Sql_ID Sample_ID Locus_ID Chromosome Basepair Strand Sequence_Type Stack_component Sequence_ID Sequence Deleveraged_Flag Blacklisted_Flag Lumberjackstack_Flag Log_likelihood			
+    
+    # denovo_map.log
+    # coverage of depth:
+    
+    # populations.log
+    # #n_snps	n_loci
+    
+    #
+    ######
+    set -e
+    # Initialize
+    if [ ! -d "$out_path" ]; then mkdir $out_path;fi
+    echo m coverage>$out_path/min_depth.stat
+    echo m assembled_loci polymorphic_loci snps>$out_path/min_isnps.stat
+    echo m assembled_loci polymorphic_loci snps>$out_path/min_r40.stat
+    echo m assembled_loci polymorphic_loci snps>$out_path/min_r60.stat
+    echo m assembled_loci polymorphic_loci snps>$out_path/min_r80.stat
+    echo m coverage>$out_path/Mis_depth.stat
+    echo M assembled_loci polymorphic_loci snps>$out_path/Mis_isnps.stat
+    echo M assembled_loci polymorphic_loci snps>$out_path/Mis_r40.stat
+    echo M assembled_loci polymorphic_loci snps>$out_path/Mis_r60.stat
+    echo M assembled_loci polymorphic_loci snps>$out_path/Mis_r80.stat
+    f_ver=1
+    get_version ustacks
+    # depth
+    
+    iter_pars $m 'min' $in_path $out_path $pop $t
+    # mismatch
+    iter_pars $M 'Mis' $in_path $out_path $pop $t
+    set +e
+    # plot and clean
+    cd $out_path && r80_plot 'min' 'min.png' 2 $m && r80_plot 'Mis' 'Mis.png' 1 $M && mkdir -p log && mv *.log log/ && cd -
+    
+}
+
+function r80_plot() {
+
+    in=$1
+    out=$2
+    co=$3
+    max=$4
+    [ "$in" == 'min' ] && xlab='m'
+    [ "$in" == 'Mis' ] && xlab='M'
+    f1=${in}_isnps.stat
+    f2=${in}_r40.stat
+    f3=${in}_r60.stat
+    f4=${in}_r80.stat
+    gnuplot --persist << EOF
+    set term png
+    set output "depth.png"
+    set key autotitle columnhead
+    set style fill solid 0.25 border -1
+    set style boxplot outliers pointtype 7
+    set style data boxplot
+    set key lmargin
+    # depth
+    set xlabel 'm'
+    set ylabel 'coverage'
+    plot "min_depth.stat" using (2):2:(0.5):1 w boxplot notitle
+    # assembled loci
+    set term png size 1600,800
+    set output "$out"
+    set multiplot layout 2,3
+    set xrange [$co-0.75:$max+0.75]
+    set xtics $co,1,$max
+    set xlabel ""
+    set ylabel "Number of assembled loci"
+    plot "$f2" u 1:2 w points title 'r40' pt 12 ps 1.5, "$f3" using 1:2 w points title 'r60' pt 13 ps 1.5, \
+    "$f4" using 1:2 w points title 'r80' pt 5 ps 1.5, "$f1" u ($co):2:(0.5):1 w boxplot notitle
+    
+    unset key
+    set ylabel "Number of polymorphic loci"
+    plot "$f2" u 1:3 w points title 'r40' pt 12 ps 1.5, "$f3" using 1:3 w points title 'r60' pt 13 ps 1.5, \
+    "$f4" using 1:3 w points title 'r80' pt 5 ps 1.5, "$f1" u ($co):3:(0.5):1 w boxplot notitle
+    
+    set ylabel "Number of SNPs"
+    plot "$f2" u 1:4 w points title 'r40' pt 12 ps 1.5, "$f3" using 1:4 w points title 'r60' pt 13 ps 1.5, \
+    "$f4" using 1:4 w points title 'r80' pt 5 ps 1.5, "$f1" u ($co):4:(0.5):1 w boxplot notitle
+    
+    # plot r80 again
+    set key lmargin
+    set xlabel "$xlab"
+    set xrange [$co-0.75:$max+0.75]
+    set xtics $co,1,$max
+    set ylabel "Number of assembled loci"
+    plot "$f2" u 1:2 w points title 'r40' pt 12 ps 1.5, "$f3" using 1:2 w points title 'r60' pt 13 ps 1.5, \
+    "$f4" using 1:2 w points title 'r80' pt 5 ps 1.5
+    
+    unset key
+    set ylabel "Number of polymorphic loci"
+    plot "$f2" u 1:3 w points title 'r40' pt 12 ps 1.5, "$f3" using 1:3 w points title 'r60' pt 13 ps 1.5, \
+    "$f4" using 1:3 w points title 'r80' pt 5 ps 1.5
+    
+    set ylabel "Number of SNPs"
+    plot "$f2" u 1:4 w points title 'r40' pt 12 ps 1.5, "$f3" using 1:4 w points title 'r60' pt 13 ps 1.5, \
+    "$f4" using 1:4 w points title 'r80' pt 5 ps 1.5
+    unset multiplot
+EOF
+
 }
 
 function run_ustacks() {
+    set -e 
     local out_path=$1
     local mis=$2
     local minDP=$3
@@ -478,13 +682,18 @@ function run_ustacks() {
         echo
         echo "Processing sample $indiv [$j of $len]..."
         echo
-        ustacks -t $ftyp -f $indiv -H -N 0 $ugap -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $j 2>&1 | tee -a $out_path/stacks/Ustacks.log
+        cmd="-t $ftyp -f $indiv -H -N 0 $ugap -o $out_path/stacks/ -p $threads -M $mis -m $minDP -d -i $j"
+        echo `which ustacks` $cmd '2>&1'
+        echo
+        ustacks $cmd 2>&1 | tee -a $out_path/stacks/Ustacks.log
         if [ ${PIPESTATUS[0]} != 0 ]; then echo -e "\033[47;31m ustacks error! Quitting...\033[0m"; exit 1; fi 
         
     done
+    set +e
 }
 
 function run_cstacks() {
+    set -e
     local in_path=$1
     local out_path=$2
     local c_mis=$3
@@ -502,9 +711,13 @@ function run_cstacks() {
             if [ "$f_ver" == 2 ]; then cgap=''; fi
         fi
     fi
-    
-    cstacks -P $in_path -M $map -n $c_mis $cgap -p $threads 2>&1 | tee $out_path/Cstacks.log
+    cmd="-P $in_path -M $map -n $c_mis $cgap -p $threads"
+    echo
+    echo `which cstacks` $cmd '2>&1'
+    echo
+    cstacks $cmd 2>&1 | tee $out_path/Cstacks.log
     if [ ${PIPESTATUS[0]} != 0 ]; then echo -e "\033[47;31m cstacks error! Quitting...\033[0m"; exit 1; fi 
+    set +e
 }
 
 check_files() {
@@ -537,15 +750,12 @@ check_files() {
 ###### Preliminary ######
 
 ######Set environment ######
-cur_path=`which RADassembler`
-cur_path=${cur_path%"RADassembler"}
+cur_path=$(cd `dirname $0`; pwd -P)
 chmod +x $cur_path/bin/*.pl
 export PATH=$cur_path/bin:$PATH
-if [ ! `which sort_read_pairs_multi.pl 2>/dev/null` ] || [ ! `which CP3_Opti.pl 2>/dev/null` ];
-then
-    echo "Incompleted installation of RADassembler!"
-    exit 1
-fi
+(sort_read_pairs_multi.pl >&/dev/null && CP3_Opti.pl >&/dev/null) || \
+(echo "Incompleted installation of RADassembler!" && \
+exit 1) || exit 1
 ###### Select similarity threshold ######
 if [ "$1" = 'chooseN' ];
 then
@@ -557,33 +767,27 @@ then
     chooseM $2 $3 $4 $5 $6 $7 $8 $9
     if [ $? == 0 ]; then exit 0; else exit 1; fi
 fi
-
-if [ $# -lt 4 ] || [ $1 = -h ];
-then 
-    echo "$Usage"
-    exit 0
+if [ "$1" = 'r80' ];
+then
+    run_r80 $2 $3 $4 $5 $6 $7
+    if [ $? == 0 ]; then exit 0; else exit 1; fi
 fi
+([ "$1" = '-h' ] || [ $# = 0 ]) && echo "$Usage" && exit 0
 
 ###### Default parameters ######
-if [ -z "$in_path" ]; then echo "Please indicate input path!"; exit 1; fi
-if [ -z "$out_path" ]; then echo "Please indicate out path!"; exit 1; fi
-if [ -z "$samp" ]; then echo "Please indicate paired-end file path!"; exit 1; fi
-if [ -z "$map" ]; then echo "Please indicate a PopMap file!"; exit 1; fi
-if [ -z "$mis" ]; then mis=2; fi
-if [ -z "$c_mis" ]; then c_mis=1; fi
-if [ -z "$minDP" ]; then minDP=3; fi
-if [ -z "$minL" ]; then minL=3; fi
+[ -z "$in_path" ] && echo "Please indicate input path!" && exit 1
+[ -z "$out_path" ] && echo "Please indicate out path!" && exit 1
+[ -z "$samp" ] && echo "Please indicate paired-end file path!" && exit 1
+[ -z "$map" ] && echo "Please indicate a PopMap file!" && exit 1
+mis=${mis:-2};c_mis=${c_mis:-1};minDP=${minDP:-3};minL=${minL:-3};threads=${threads:-1};kmer=${kmer:-27}
+[ "$verify" == 0 ] && verify='-x'
+[ -z "$cov" ] || cov="-c $cov"
 if [ -z "$asmb" ]; then asmb=1; dasmb='Yes'; else dasmb='No'; fi
-if [ -z "$threads" ]; then threads=1; fi
-if [ -z "$kmer" ]; then kmer=27; fi
-if [ "$verify" == 0 ]; then verify='-x'; fi
-if [ -z "$cov" ]; then cov=''; else cov="-c $cov"; fi
 if [ -z "$assembler" ]; then assembler='cap3'; elif [ "$assembler" == 'velvet' ]; 
 then if [ ! `which velvetg 2>/dev/null` ] || [ ! `which velveth 2>/dev/null` ];
 then echo "Please install velvet!"; fi; fi
 if [ "$assembler" != 'cap3' ] && [ "$assembler" != 'velvet' ];
 then echo "Assembler can only be cap3 or velvet."; exit 1; fi
-
 ###### Continue to assembly ######
 if [ "$run_flg" == 'assembly' ];
 then
@@ -632,31 +836,34 @@ then
 fi   
 #########################
 ###### Parameters ######
-par="
-RADassembler Parameters:
-\nNumber  of individuals                 : $len
-\nPath of reads for clustering[read1]    : $in_path 
-\nPath of reads for assembly[paired-end] : $samp
-\nPath of output results                 : $out_path
-\nMinimum depth for stacks               : $minDP
-\nMismatch[ustacks]                      : $mis
-\nMismatch[cstacks]                      : $c_mis
-\nNumber of threads                      : $threads
-\nAssembly                               : $dasmb
-\nAssembler                              : $assembler
-\nDepth for assembly                     : $minL
+cmd="RADassembler cmd: $0 $*"
+par="$cmd
+Parameters:
+  Number of individuals                  : $len
+  Path of reads for clustering[read1]    : $in_path
+  Path of reads for assembly[paired-end] : $samp
+  Path of output results                 : $out_path
+  Minimum depth for stacks               : $minDP
+  Mismatch[ustacks]                      : $mis
+  Mismatch[cstacks]                      : $c_mis
+  Number of threads                      : $threads
+  Assembly                               : $dasmb
+  Assembler                              : $assembler
+  Depth for assembly                     : $minL
 "
 echo "======================================================"
-echo -e $par | tee $out_path/RADassembler.par
+echo -e "$par" | tee $out_path/RADassembler.par
 echo "======================================================"
 echo
 #####################
-    
+function main(){    
 ###### Ustacks ######
+t1=$(date +%s)
+u_flag=`grep 'ustacks is done' $out_path/stacks/Ustacks.log 2>/dev/null |wc -l`
+if [ $u_flag != $len ]; then
 echo "======================================================"
 echo "  [`tcmd`] Running ustacks..."
 echo "======================================================"
-t1=$(date +%s)
 run_ustacks $out_path $mis $minDP $threads
 if [ $? != 0 ];
 then
@@ -664,7 +871,10 @@ then
 fi
 #################################
 running_time ustacks
+fi
 ###### cstacks and sstacks ######
+c_flag=`grep 'cstacks is done' $out_path/stacks/Cstacks.log 2>/dev/null`
+if [ -z "$c_flag" ]; then
 echo "======================================================"
 echo "  [`tcmd`] Running cstacks..."
 echo "======================================================"
@@ -674,13 +884,17 @@ then
     exit 1;
 fi
 running_time cstacks
-
+fi
 ###### Continue to run assembly by flag ######
 #assembly:
 echo "======================================================"
 echo "  [`tcmd`] Running sstacks..."
 echo "======================================================"
-sstacks -P $out_path/stacks/ -M $map -p $threads 2>&1 | tee $out_path/stacks/Sstacks.log
+cmd="-P $out_path/stacks/ -M $map -p $threads"
+echo
+echo `which sstacks` $cmd '2>&1'
+echo
+sstacks $cmd 2>&1 | tee $out_path/stacks/Sstacks.log
 if [ ${PIPESTATUS[0]} != 0 ]; then echo -e "\033[47;31m sstacks error, exiting...\033[0m"; exit 1; fi 
 running_time sstacks
 ###############################
@@ -706,7 +920,11 @@ then
     fi
 fi
 mkdir -p $out_path/reads_export
-sort_read_pairs_multi.pl -p $out_path/stacks/ -s $samp -o $out_path/reads_export -T $threads -m $minL -i ${ftyp#"gz"} $cov $verify 2>&1 | tee $out_path/stacks/export.log
+cmd="-p $out_path/stacks/ -s $samp -o $out_path/reads_export -T $threads -m $minL -i ${ftyp#"gz"} $cov $verify"
+echo
+echo `which sort_read_pairs_multi.pl` $cmd '2>&1'
+echo
+sort_read_pairs_multi.pl $cmd 2>&1 | tee $out_path/stacks/export.log
 if [ ${PIPESTATUS[0]} != 0 ]; then echo "Error in exporting fasta files, exiting...";exit 1;fi
 ##########################
 running_time 'Exporting fasta'
@@ -716,10 +934,19 @@ then
     echo "==========================================================="
     echo "  [`tcmd`] Running local assembly..."
     echo "==========================================================="
-    CP3_Opti.pl -i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/*catalog.tags.tsv* -a $assembler -t $threads -k $kmer -d
+    cmd="-i $out_path/reads_export -o $out_path/Assembly -l $out_path/stacks/*catalog.tags.tsv* -a $assembler -t $threads -k $kmer -d"
+    echo
+    echo `which CP3_Opti.pl` $cmd
+    echo
+    CP3_Opti.pl $cmd
     if [ $? != 0 ]; then echo "Error in local assembly, exiting..."; exit 1; fi
 fi
 running_time Assembly
 echo "[`tcmd`] Done!"
 t2=$(date +%s)
-echo "Total running time is $(( $t2 - $t0 )) s"
+echo
+echo "Total running time is $(( $t2 - $t0 )) s, thank you for using RADassembler."
+echo
+}
+
+main

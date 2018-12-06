@@ -49,7 +49,7 @@ GetOptions ("par=s"         => \$cmd,
             ) 
 or die ("Error in command line arguments\n");
     
-die "$usage\n" if !($in_path && $out_path && $loci) or ($help);
+if (!($in_path && $out_path && $loci) or $help) {print "$usage\n";exit(0)};
 
 ## If the outpath does not exist, create it;
 if (! -e "$out_path/assembly_1st") {
@@ -338,7 +338,7 @@ sub retrieve_dat {
     my ($in_fa, $out_path, $name_fa, $flag) = @_;
     my $out_seqs = retrieve($in_fa);
     open(my $out_fh, ">$out_path/$name_fa") or die "$!";
-    foreach my $locus (keys %{$out_seqs}) {
+    foreach my $locus (sort keys %{$out_seqs}) {
         my $seq = $out_seqs->{$locus};
         $seq    =~ s/>/>$locus\./g;
         $seq    =~ s/[^\d]\n[^>]//ig; # seq to one line.

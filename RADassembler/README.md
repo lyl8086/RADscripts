@@ -57,9 +57,10 @@ Usage:
     -A: turn off assembly.
     -R: run a single component, accept "ustacks", "cstacks" or "assembly".
     -t: number of threads.
-    
+    -v: version
     chooseM: Similarity threshold selection within individual [ustacks].
     chooseN: Similarity threshold selection across individuals [cstacks].
+    r80: Parameters optimization for m and M of Stacks using method of Paris et al. 2017 
 
 ```
 
@@ -93,6 +94,19 @@ threads: number of threads used in cstacks.
 gapped: turn on gapped assembly? 1:on, 0:off.
 replot: just re-plot graphs.
 yrange: ranges for y-axis used in plot, minimum:maximum.
+```
+
+* <b>experimental!</b> r80 (parameters provides the highest amount of polymorphism across 80% of the population)
+
+```
+Usage: RADassembler r80 [inpath] [outpath] [popmap] [maxDepth] [maxMismatch] [threads]
+
+inpath: input path for samples of reads (containing enzyme cut sites).
+outpath: output path for parameters optimization of Stacks results.
+popmap: a [PopMap](samples/PopMaP) file, e.g. `individual\tpopulation`.
+maxDepth: maximum depth (m, from 2 to maximum) of Stacks for optimization.
+maxMismatch: maximum mismatch (M, from 1 to maximum) of Stacks for optimization.
+threads: number of threads.
 ```
 
 <b>see</b> [samples](samples) for an example run.

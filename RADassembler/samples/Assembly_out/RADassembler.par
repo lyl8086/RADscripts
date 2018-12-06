@@ -1,12 +1,12 @@
 RADassembler Parameters: 
-Number of individuals : 3 
+Number of individuals : 12 
 Path of reads for clustering[read1] : samples/read1 
 Path of reads for assembly[paired-end] : samples/read2 
 Path of output results : tmp_out/Assembly_out 
 Minimum depth for stacks : 3 
 Mismatch[ustacks] : 6 
 Mismatch[cstacks] : 6 
-Number of threads : 40 
+Number of threads : 16 
 Assembly : Yes 
 Assembler : cap3 
 Depth for assembly : 10:100

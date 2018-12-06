@@ -10,33 +10,33 @@ ustacks parameters selected:
   Alpha significance level for model: 0.05
   Gapped alignments: disabled
 
-Parsing samples/read1/fishsim-1.fq.gz
+Parsing samples/read1/fishsim-10.fq.gz
 Loading RAD-Tags...done
 Loaded 50000 RAD-Tags.
-  Inserted 9188 elements into the RAD-Tags hash map.
-  7050 reads contained uncalled nucleotides that were modified.
-3205 initial stacks were populated; 5983 stacks were set aside as secondary reads.
-Initial coverage mean: 13.7298; Std Dev: 4.75181; Max: 86
-Repetitive stacks removal threshold: 24 (mean+2*stdev)
+  Inserted 36312 elements into the RAD-Tags hash map.
+  104 reads contained uncalled nucleotides that were modified.
+950 initial stacks were populated; 35362 stacks were set aside as secondary reads.
+Initial coverage mean: 14.8947; Std Dev: 5.51414; Max: 86
+Repetitive stacks removal threshold: 26 (mean+2*stdev)
 Calculating distance for removing repetitive stacks.
   Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
 Removing repetitive stacks.
-  Removed 137 stacks.
-  3144 stacks remain for merging.
-Post-Repeat Removal, coverage depth Mean: 13.2731; Std Dev: 3.69463; Max: 24
+  Removed 44 stacks.
+  934 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.3664; Std Dev: 3.95314; Max: 26
 Calculating distance between stacks...
   Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
 Merging stacks, maximum allowed distance: 6 nucleotide(s)
-  3144 stacks merged into 1808 loci; deleveraged 50 loci; blacklisted 13 loci.
-After merging, coverage depth Mean: 23.2426; Std Dev: 7.29946; Max: 48
+  934 stacks merged into 515 loci; deleveraged 14 loci; blacklisted 0 loci.
+After merging, coverage depth Mean: 26.7269; Std Dev: 7.05809; Max: 56
 Merging remainder radtags
-  5996 remainder sequences left to merge.
-  Matched 0 remainder reads; unable to match 5996 remainder reads.
-After remainders merged, coverage depth Mean: 23.2426; Std Dev: 7.29946; Max: 48
+  35850 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35850 remainder reads.
+After remainders merged, coverage depth Mean: 26.7269; Std Dev: 7.05809; Max: 56
 Calling final consensus sequences, invoking SNP-calling model...
-Number of utilized reads: 44004
+Number of utilized reads: 14150
 Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
-  Refetching sequencing IDs from samples/read1/fishsim-1.fq.gz... read 50000 sequence IDs.
+  Refetching sequencing IDs from samples/read1/fishsim-10.fq.gz... read 50000 sequence IDs.
 done.
 ustacks is done.
 ustacks parameters selected:
@@ -51,33 +51,33 @@ ustacks parameters selected:
   Alpha significance level for model: 0.05
   Gapped alignments: disabled
 
-Parsing samples/read1/fishsim-2.fq.gz
+Parsing samples/read1/fishsim-11.fq.gz
 Loading RAD-Tags...done
 Loaded 50000 RAD-Tags.
-  Inserted 8979 elements into the RAD-Tags hash map.
-  6463 reads contained uncalled nucleotides that were modified.
-3197 initial stacks were populated; 5782 stacks were set aside as secondary reads.
-Initial coverage mean: 13.827; Std Dev: 4.91852; Max: 70
-Repetitive stacks removal threshold: 24 (mean+2*stdev)
+  Inserted 36077 elements into the RAD-Tags hash map.
+  89 reads contained uncalled nucleotides that were modified.
+961 initial stacks were populated; 35116 stacks were set aside as secondary reads.
+Initial coverage mean: 14.999; Std Dev: 5.54548; Max: 65
+Repetitive stacks removal threshold: 27 (mean+2*stdev)
 Calculating distance for removing repetitive stacks.
   Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
 Removing repetitive stacks.
-  Removed 139 stacks.
-  3149 stacks remain for merging.
-Post-Repeat Removal, coverage depth Mean: 13.3005; Std Dev: 3.7297; Max: 24
+  Removed 41 stacks.
+  943 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.5163; Std Dev: 4.23646; Max: 27
 Calculating distance between stacks...
   Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
 Merging stacks, maximum allowed distance: 6 nucleotide(s)
-  3149 stacks merged into 1834 loci; deleveraged 49 loci; blacklisted 3 loci.
-After merging, coverage depth Mean: 23.2615; Std Dev: 7.76235; Max: 53
+  943 stacks merged into 525 loci; deleveraged 15 loci; blacklisted 0 loci.
+After merging, coverage depth Mean: 26.6036; Std Dev: 6.86786; Max: 44
 Merging remainder radtags
-  5795 remainder sequences left to merge.
-  Matched 0 remainder reads; unable to match 5795 remainder reads.
-After remainders merged, coverage depth Mean: 23.2615; Std Dev: 7.76235; Max: 53
+  35586 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35586 remainder reads.
+After remainders merged, coverage depth Mean: 26.6036; Std Dev: 6.86786; Max: 44
 Calling final consensus sequences, invoking SNP-calling model...
-Number of utilized reads: 44205
+Number of utilized reads: 14414
 Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
-  Refetching sequencing IDs from samples/read1/fishsim-2.fq.gz... read 50000 sequence IDs.
+  Refetching sequencing IDs from samples/read1/fishsim-11.fq.gz... read 50000 sequence IDs.
 done.
 ustacks is done.
 ustacks parameters selected:
@@ -92,32 +92,401 @@ ustacks parameters selected:
   Alpha significance level for model: 0.05
   Gapped alignments: disabled
 
-Parsing samples/read1/fishsim-3.fq.gz
+Parsing samples/read1/fishsim-12.fq.gz
 Loading RAD-Tags...done
 Loaded 50000 RAD-Tags.
-  Inserted 9077 elements into the RAD-Tags hash map.
-  5773 reads contained uncalled nucleotides that were modified.
-3180 initial stacks were populated; 5897 stacks were set aside as secondary reads.
-Initial coverage mean: 13.8638; Std Dev: 4.84203; Max: 64
-Repetitive stacks removal threshold: 24 (mean+2*stdev)
+  Inserted 36128 elements into the RAD-Tags hash map.
+  90 reads contained uncalled nucleotides that were modified.
+960 initial stacks were populated; 35168 stacks were set aside as secondary reads.
+Initial coverage mean: 14.9667; Std Dev: 6.41506; Max: 106
+Repetitive stacks removal threshold: 28 (mean+2*stdev)
 Calculating distance for removing repetitive stacks.
   Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
 Removing repetitive stacks.
-  Removed 148 stacks.
-  3142 stacks remain for merging.
-Post-Repeat Removal, coverage depth Mean: 13.2909; Std Dev: 3.66495; Max: 24
+  Removed 29 stacks.
+  948 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.5446; Std Dev: 4.43559; Max: 28
 Calculating distance between stacks...
   Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
 Merging stacks, maximum allowed distance: 6 nucleotide(s)
-  3142 stacks merged into 1835 loci; deleveraged 49 loci; blacklisted 6 loci.
-After merging, coverage depth Mean: 23.2565; Std Dev: 7.46985; Max: 49
+  948 stacks merged into 516 loci; deleveraged 13 loci; blacklisted 3 loci.
+After merging, coverage depth Mean: 26.8004; Std Dev: 6.7575; Max: 45
 Merging remainder radtags
-  5913 remainder sequences left to merge.
-  Matched 0 remainder reads; unable to match 5913 remainder reads.
-After remainders merged, coverage depth Mean: 23.2565; Std Dev: 7.46985; Max: 49
+  35632 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35632 remainder reads.
+After remainders merged, coverage depth Mean: 26.8004; Std Dev: 6.7575; Max: 45
 Calling final consensus sequences, invoking SNP-calling model...
-Number of utilized reads: 44087
+Number of utilized reads: 14368
+Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
+  Refetching sequencing IDs from samples/read1/fishsim-12.fq.gz... read 50000 sequence IDs.
+done.
+ustacks is done.
+ustacks parameters selected:
+  Sample ID: 4
+  Min depth of coverage to create a stack: 3
+  Max distance allowed between stacks: 6
+  Max distance allowed to align secondary reads: 0
+  Max number of stacks allowed per de novo locus: 3
+  Deleveraging algorithm: enabled
+  Removal algorithm: enabled
+  Model type: SNP
+  Alpha significance level for model: 0.05
+  Gapped alignments: disabled
+
+Parsing samples/read1/fishsim-1.fq.gz
+Loading RAD-Tags...done
+Loaded 50000 RAD-Tags.
+  Inserted 35958 elements into the RAD-Tags hash map.
+  83 reads contained uncalled nucleotides that were modified.
+954 initial stacks were populated; 35004 stacks were set aside as secondary reads.
+Initial coverage mean: 15.2442; Std Dev: 5.64796; Max: 73
+Repetitive stacks removal threshold: 27 (mean+2*stdev)
+Calculating distance for removing repetitive stacks.
+  Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
+Removing repetitive stacks.
+  Removed 41 stacks.
+  937 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.6802; Std Dev: 4.18972; Max: 27
+Calculating distance between stacks...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+Merging stacks, maximum allowed distance: 6 nucleotide(s)
+  937 stacks merged into 510 loci; deleveraged 12 loci; blacklisted 1 loci.
+After merging, coverage depth Mean: 27.4866; Std Dev: 7.33515; Max: 47
+Merging remainder radtags
+  35457 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35457 remainder reads.
+After remainders merged, coverage depth Mean: 27.4866; Std Dev: 7.33515; Max: 47
+Calling final consensus sequences, invoking SNP-calling model...
+Number of utilized reads: 14543
+Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
+  Refetching sequencing IDs from samples/read1/fishsim-1.fq.gz... read 50000 sequence IDs.
+done.
+ustacks is done.
+ustacks parameters selected:
+  Sample ID: 5
+  Min depth of coverage to create a stack: 3
+  Max distance allowed between stacks: 6
+  Max distance allowed to align secondary reads: 0
+  Max number of stacks allowed per de novo locus: 3
+  Deleveraging algorithm: enabled
+  Removal algorithm: enabled
+  Model type: SNP
+  Alpha significance level for model: 0.05
+  Gapped alignments: disabled
+
+Parsing samples/read1/fishsim-2.fq.gz
+Loading RAD-Tags...done
+Loaded 50000 RAD-Tags.
+  Inserted 36266 elements into the RAD-Tags hash map.
+  98 reads contained uncalled nucleotides that were modified.
+969 initial stacks were populated; 35297 stacks were set aside as secondary reads.
+Initial coverage mean: 14.6873; Std Dev: 5.78745; Max: 101
+Repetitive stacks removal threshold: 27 (mean+2*stdev)
+Calculating distance for removing repetitive stacks.
+  Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
+Removing repetitive stacks.
+  Removed 46 stacks.
+  950 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.1647; Std Dev: 3.99986; Max: 27
+Calculating distance between stacks...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+Merging stacks, maximum allowed distance: 6 nucleotide(s)
+  950 stacks merged into 521 loci; deleveraged 18 loci; blacklisted 1 loci.
+After merging, coverage depth Mean: 26.3793; Std Dev: 6.84752; Max: 46
+Merging remainder radtags
+  35768 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35768 remainder reads.
+After remainders merged, coverage depth Mean: 26.3793; Std Dev: 6.84752; Max: 46
+Calling final consensus sequences, invoking SNP-calling model...
+Number of utilized reads: 14232
+Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
+  Refetching sequencing IDs from samples/read1/fishsim-2.fq.gz... read 50000 sequence IDs.
+done.
+ustacks is done.
+ustacks parameters selected:
+  Sample ID: 6
+  Min depth of coverage to create a stack: 3
+  Max distance allowed between stacks: 6
+  Max distance allowed to align secondary reads: 0
+  Max number of stacks allowed per de novo locus: 3
+  Deleveraging algorithm: enabled
+  Removal algorithm: enabled
+  Model type: SNP
+  Alpha significance level for model: 0.05
+  Gapped alignments: disabled
+
+Parsing samples/read1/fishsim-3.fq.gz
+Loading RAD-Tags...done
+Loaded 50000 RAD-Tags.
+  Inserted 36183 elements into the RAD-Tags hash map.
+  88 reads contained uncalled nucleotides that were modified.
+966 initial stacks were populated; 35217 stacks were set aside as secondary reads.
+Initial coverage mean: 14.8499; Std Dev: 5.19588; Max: 71
+Repetitive stacks removal threshold: 26 (mean+2*stdev)
+Calculating distance for removing repetitive stacks.
+  Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
+Removing repetitive stacks.
+  Removed 42 stacks.
+  951 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.3333; Std Dev: 3.88517; Max: 26
+Calculating distance between stacks...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+Merging stacks, maximum allowed distance: 6 nucleotide(s)
+  951 stacks merged into 518 loci; deleveraged 13 loci; blacklisted 1 loci.
+After merging, coverage depth Mean: 26.8673; Std Dev: 6.76431; Max: 41
+Merging remainder radtags
+  35655 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35655 remainder reads.
+After remainders merged, coverage depth Mean: 26.8673; Std Dev: 6.76431; Max: 41
+Calling final consensus sequences, invoking SNP-calling model...
+Number of utilized reads: 14345
 Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
   Refetching sequencing IDs from samples/read1/fishsim-3.fq.gz... read 50000 sequence IDs.
+done.
+ustacks is done.
+ustacks parameters selected:
+  Sample ID: 7
+  Min depth of coverage to create a stack: 3
+  Max distance allowed between stacks: 6
+  Max distance allowed to align secondary reads: 0
+  Max number of stacks allowed per de novo locus: 3
+  Deleveraging algorithm: enabled
+  Removal algorithm: enabled
+  Model type: SNP
+  Alpha significance level for model: 0.05
+  Gapped alignments: disabled
+
+Parsing samples/read1/fishsim-4.fq.gz
+Loading RAD-Tags...done
+Loaded 50000 RAD-Tags.
+  Inserted 36138 elements into the RAD-Tags hash map.
+  91 reads contained uncalled nucleotides that were modified.
+966 initial stacks were populated; 35172 stacks were set aside as secondary reads.
+Initial coverage mean: 14.9182; Std Dev: 5.9458; Max: 98
+Repetitive stacks removal threshold: 27 (mean+2*stdev)
+Calculating distance for removing repetitive stacks.
+  Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
+Removing repetitive stacks.
+  Removed 49 stacks.
+  943 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.4602; Std Dev: 4.02904; Max: 27
+Calculating distance between stacks...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+Merging stacks, maximum allowed distance: 6 nucleotide(s)
+  943 stacks merged into 513 loci; deleveraged 8 loci; blacklisted 1 loci.
+After merging, coverage depth Mean: 27.1214; Std Dev: 6.57778; Max: 46
+Merging remainder radtags
+  35589 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35589 remainder reads.
+After remainders merged, coverage depth Mean: 27.1214; Std Dev: 6.57778; Max: 46
+Calling final consensus sequences, invoking SNP-calling model...
+Number of utilized reads: 14411
+Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
+  Refetching sequencing IDs from samples/read1/fishsim-4.fq.gz... read 50000 sequence IDs.
+done.
+ustacks is done.
+ustacks parameters selected:
+  Sample ID: 8
+  Min depth of coverage to create a stack: 3
+  Max distance allowed between stacks: 6
+  Max distance allowed to align secondary reads: 0
+  Max number of stacks allowed per de novo locus: 3
+  Deleveraging algorithm: enabled
+  Removal algorithm: enabled
+  Model type: SNP
+  Alpha significance level for model: 0.05
+  Gapped alignments: disabled
+
+Parsing samples/read1/fishsim-5.fq.gz
+Loading RAD-Tags...done
+Loaded 50000 RAD-Tags.
+  Inserted 36364 elements into the RAD-Tags hash map.
+  92 reads contained uncalled nucleotides that were modified.
+953 initial stacks were populated; 35411 stacks were set aside as secondary reads.
+Initial coverage mean: 14.8646; Std Dev: 5.71862; Max: 101
+Repetitive stacks removal threshold: 27 (mean+2*stdev)
+Calculating distance for removing repetitive stacks.
+  Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
+Removing repetitive stacks.
+  Removed 41 stacks.
+  942 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.2522; Std Dev: 4.10738; Max: 27
+Calculating distance between stacks...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+Merging stacks, maximum allowed distance: 6 nucleotide(s)
+  942 stacks merged into 510 loci; deleveraged 15 loci; blacklisted 5 loci.
+After merging, coverage depth Mean: 26.5705; Std Dev: 6.76374; Max: 44
+Merging remainder radtags
+  35834 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35834 remainder reads.
+After remainders merged, coverage depth Mean: 26.5705; Std Dev: 6.76374; Max: 44
+Calling final consensus sequences, invoking SNP-calling model...
+Number of utilized reads: 14166
+Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
+  Refetching sequencing IDs from samples/read1/fishsim-5.fq.gz... read 50000 sequence IDs.
+done.
+ustacks is done.
+ustacks parameters selected:
+  Sample ID: 9
+  Min depth of coverage to create a stack: 3
+  Max distance allowed between stacks: 6
+  Max distance allowed to align secondary reads: 0
+  Max number of stacks allowed per de novo locus: 3
+  Deleveraging algorithm: enabled
+  Removal algorithm: enabled
+  Model type: SNP
+  Alpha significance level for model: 0.05
+  Gapped alignments: disabled
+
+Parsing samples/read1/fishsim-6.fq.gz
+Loading RAD-Tags...done
+Loaded 50000 RAD-Tags.
+  Inserted 36308 elements into the RAD-Tags hash map.
+  121 reads contained uncalled nucleotides that were modified.
+966 initial stacks were populated; 35342 stacks were set aside as secondary reads.
+Initial coverage mean: 14.7091; Std Dev: 5.99407; Max: 98
+Repetitive stacks removal threshold: 27 (mean+2*stdev)
+Calculating distance for removing repetitive stacks.
+  Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
+Removing repetitive stacks.
+  Removed 39 stacks.
+  954 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.1338; Std Dev: 3.99452; Max: 27
+Calculating distance between stacks...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+Merging stacks, maximum allowed distance: 6 nucleotide(s)
+  954 stacks merged into 517 loci; deleveraged 12 loci; blacklisted 2 loci.
+After merging, coverage depth Mean: 26.4836; Std Dev: 7.23916; Max: 50
+Merging remainder radtags
+  35791 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35791 remainder reads.
+After remainders merged, coverage depth Mean: 26.4836; Std Dev: 7.23916; Max: 50
+Calling final consensus sequences, invoking SNP-calling model...
+Number of utilized reads: 14209
+Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
+  Refetching sequencing IDs from samples/read1/fishsim-6.fq.gz... read 50000 sequence IDs.
+done.
+ustacks is done.
+ustacks parameters selected:
+  Sample ID: 10
+  Min depth of coverage to create a stack: 3
+  Max distance allowed between stacks: 6
+  Max distance allowed to align secondary reads: 0
+  Max number of stacks allowed per de novo locus: 3
+  Deleveraging algorithm: enabled
+  Removal algorithm: enabled
+  Model type: SNP
+  Alpha significance level for model: 0.05
+  Gapped alignments: disabled
+
+Parsing samples/read1/fishsim-7.fq.gz
+Loading RAD-Tags...done
+Loaded 50000 RAD-Tags.
+  Inserted 36347 elements into the RAD-Tags hash map.
+  96 reads contained uncalled nucleotides that were modified.
+989 initial stacks were populated; 35358 stacks were set aside as secondary reads.
+Initial coverage mean: 14.363; Std Dev: 4.96038; Max: 76
+Repetitive stacks removal threshold: 25 (mean+2*stdev)
+Calculating distance for removing repetitive stacks.
+  Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
+Removing repetitive stacks.
+  Removed 32 stacks.
+  976 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.0512; Std Dev: 3.93528; Max: 25
+Calculating distance between stacks...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+Merging stacks, maximum allowed distance: 6 nucleotide(s)
+  976 stacks merged into 521 loci; deleveraged 13 loci; blacklisted 2 loci.
+After merging, coverage depth Mean: 26.504; Std Dev: 7.01213; Max: 53
+Merging remainder radtags
+  35795 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35795 remainder reads.
+After remainders merged, coverage depth Mean: 26.504; Std Dev: 7.01213; Max: 53
+Calling final consensus sequences, invoking SNP-calling model...
+Number of utilized reads: 14205
+Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
+  Refetching sequencing IDs from samples/read1/fishsim-7.fq.gz... read 50000 sequence IDs.
+done.
+ustacks is done.
+ustacks parameters selected:
+  Sample ID: 11
+  Min depth of coverage to create a stack: 3
+  Max distance allowed between stacks: 6
+  Max distance allowed to align secondary reads: 0
+  Max number of stacks allowed per de novo locus: 3
+  Deleveraging algorithm: enabled
+  Removal algorithm: enabled
+  Model type: SNP
+  Alpha significance level for model: 0.05
+  Gapped alignments: disabled
+
+Parsing samples/read1/fishsim-8.fq.gz
+Loading RAD-Tags...done
+Loaded 50000 RAD-Tags.
+  Inserted 36367 elements into the RAD-Tags hash map.
+  90 reads contained uncalled nucleotides that were modified.
+961 initial stacks were populated; 35406 stacks were set aside as secondary reads.
+Initial coverage mean: 14.7159; Std Dev: 5.65275; Max: 70
+Repetitive stacks removal threshold: 27 (mean+2*stdev)
+Calculating distance for removing repetitive stacks.
+  Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
+Removing repetitive stacks.
+  Removed 44 stacks.
+  944 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.2432; Std Dev: 4.2946; Max: 27
+Calculating distance between stacks...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+Merging stacks, maximum allowed distance: 6 nucleotide(s)
+  944 stacks merged into 518 loci; deleveraged 15 loci; blacklisted 1 loci.
+After merging, coverage depth Mean: 26.5347; Std Dev: 7.39662; Max: 51
+Merging remainder radtags
+  35858 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35858 remainder reads.
+After remainders merged, coverage depth Mean: 26.5347; Std Dev: 7.39662; Max: 51
+Calling final consensus sequences, invoking SNP-calling model...
+Number of utilized reads: 14142
+Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
+  Refetching sequencing IDs from samples/read1/fishsim-8.fq.gz... read 50000 sequence IDs.
+done.
+ustacks is done.
+ustacks parameters selected:
+  Sample ID: 12
+  Min depth of coverage to create a stack: 3
+  Max distance allowed between stacks: 6
+  Max distance allowed to align secondary reads: 0
+  Max number of stacks allowed per de novo locus: 3
+  Deleveraging algorithm: enabled
+  Removal algorithm: enabled
+  Model type: SNP
+  Alpha significance level for model: 0.05
+  Gapped alignments: disabled
+
+Parsing samples/read1/fishsim-9.fq.gz
+Loading RAD-Tags...done
+Loaded 50000 RAD-Tags.
+  Inserted 36230 elements into the RAD-Tags hash map.
+  101 reads contained uncalled nucleotides that were modified.
+974 initial stacks were populated; 35256 stacks were set aside as secondary reads.
+Initial coverage mean: 14.6817; Std Dev: 4.86864; Max: 47
+Repetitive stacks removal threshold: 25 (mean+2*stdev)
+Calculating distance for removing repetitive stacks.
+  Distance allowed between stacks: 1; searching with a k-mer length of 61 (65 k-mers per read); 4 k-mer hits required.
+Removing repetitive stacks.
+  Removed 40 stacks.
+  962 stacks remain for merging.
+Post-Repeat Removal, coverage depth Mean: 14.1938; Std Dev: 3.93822; Max: 25
+Calculating distance between stacks...
+  Distance allowed between stacks: 6; searching with a k-mer length of 17 (109 k-mers per read); 7 k-mer hits required.
+Merging stacks, maximum allowed distance: 6 nucleotide(s)
+  962 stacks merged into 516 loci; deleveraged 14 loci; blacklisted 3 loci.
+After merging, coverage depth Mean: 26.9031; Std Dev: 6.8097; Max: 46
+Merging remainder radtags
+  35700 remainder sequences left to merge.
+  Matched 0 remainder reads; unable to match 35700 remainder reads.
+After remainders merged, coverage depth Mean: 26.9031; Std Dev: 6.8097; Max: 46
+Calling final consensus sequences, invoking SNP-calling model...
+Number of utilized reads: 14300
+Writing loci, SNPs, and alleles to 'tmp_out/Assembly_out/stacks/'...
+  Refetching sequencing IDs from samples/read1/fishsim-9.fq.gz... read 50000 sequence IDs.
 done.
 ustacks is done.
