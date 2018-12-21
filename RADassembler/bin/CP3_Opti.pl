@@ -5,7 +5,7 @@ use warnings;
 use Parallel::ForkManager;
 use Getopt::Long;
 use Storable;
-use constant V => 180731;
+use constant V => 181221;
 
 my (@files, $file, $in_tags, $sub_lst, $sec_asmb);
 my ($in_path, $out_path, $loci, $out_seqs, $time);
@@ -325,7 +325,7 @@ sub store_dat {
         my $file = $_;
         my $seq  = '';
         open(my $in_fh, "$in_path/$file");
-        sysread($in_fh, $seq, 1e10);
+        while(<$in_fh>){$seq .= $_;}
         close $in_fh;
         $out_seqs->{substr($file, 0, -3)} = $seq;
     }
@@ -341,8 +341,7 @@ sub retrieve_dat {
     foreach my $locus (sort keys %{$out_seqs}) {
         my $seq = $out_seqs->{$locus};
         $seq    =~ s/>/>$locus\./g;
-        $seq    =~ s/[^\d]\n[^>]//ig; # seq to one line.
-        $seq    =~ s/Consensus.*[\r\n]+/Consensus/g if $flag;
+        $seq    =~ s/Consensus.*\R+/Consensus/g if $flag;
         print $out_fh $seq;
     }
     close $out_fh;

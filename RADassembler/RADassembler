@@ -1,12 +1,12 @@
 #!/bin/bash
 shopt -s  expand_aliases 
 alias tcmd="date '+%A %D %X'"
-readonly VERSION='RADassembler 1.21'
+readonly VERSION='RADassembler 1.22'
 t0=$(date +%s)
 Usage='
 
    ###############################################################################
-   +                         RADassembler 1.21                                   +
+   +                         RADassembler 1.22                                   +
    + A Pipeline For Assembly of PE RAD-seq (RPE) Reads from Multiple Individuals +
    +                Contact: liyulong12@mails.ucas.ac.cn                         +
    ###############################################################################

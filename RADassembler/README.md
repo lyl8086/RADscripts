@@ -4,6 +4,8 @@
 
 Note: Only for Paired-end RAD-seq reads with random sheared ends (the original RAD protocol).
 
+<b>!!! There was a bug (version 1.11 and 1.21 ) in processing the final assembled fasta files, please update to the latest version. </b>
+
 ## PREREQUISITES
 
 * [CAP3](http://seq.cs.iastate.edu/cap3.html)
