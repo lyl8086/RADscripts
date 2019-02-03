@@ -136,7 +136,7 @@ Folder [reads_export](samples/Assembly_out/reads_export)
 
 ## Contact
 
-Yulong Li <liyulong12@mails.ucas.ac.cn>
+[Yulong Li](liyulong12@mails.ucas.ac.cn)
 
 Please consider to cite our paper:
 
