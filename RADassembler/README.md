@@ -1,3 +1,5 @@
+[![Downloads](https://img.shields.io/badge/download-latest-brightgreen.svg)](https://github.com/lyl8086/RADscripts/releases/latest)
+
 # RADassembler
 
 <b>A Pipeline For Assembly of RAD-seq (RPE) from Multiple Individuals</b>
