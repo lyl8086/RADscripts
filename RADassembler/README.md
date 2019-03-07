@@ -1,5 +1,5 @@
 [![Downloads](https://img.shields.io/badge/download-latest-brightgreen.svg)](https://github.com/lyl8086/RADscripts/releases/latest)
-
+[![GitHub release](https://img.shields.io/github/release/lyl8086/RADscripts.svg)](https://github.com/lyl8086/RADscripts/releases/download/V1.22/RADassembler1.22.tar.gz)
 # RADassembler
 
 <b>A Pipeline For Assembly of RAD-seq (RPE) from Multiple Individuals</b>
@@ -138,7 +138,7 @@ Folder [reads_export](samples/Assembly_out/reads_export)
 
 ## Contact
 
-[Yulong Li](liyulong12@mails.ucas.ac.cn)
+[Yulong Li](mailto:liyulong12@mails.ucas.ac.cn)
 
 Please consider to cite our paper:
 
