@@ -211,11 +211,17 @@ function check_fmt() {
     fi
 }
 
+function covert_time() {
+    # from second.
+    day=$(($1/86400))
+    TZ=UTC0 printf "${day}d:%(%Hh:%Mm:%Ss)T" $1
+}
+
 function running_time() {
 
     t2=$(date +%s)
     prog=$1
-    echo -e "\n====== $prog running time: $(( $t2 - $t1 )) s ======\n"
+    echo -e "\n====== $prog running time: `covert_time $(( $t2 - $t1 ))` ======\n"
     t1=$t2
 }
 
@@ -838,6 +844,13 @@ fi
 ###### Parameters ######
 cmd="RADassembler cmd: $0 $*"
 par="$cmd
+
+Programs versions:
+$VERSION
+`ustacks --version 2>&1`
+`cstacks --version 2>&1`
+cap3 `cap3 2>&1 | awk 'NR==1 {print $1,$2}'`
+
 Parameters:
   Number of individuals                  : $len
   Path of reads for clustering[read1]    : $in_path
@@ -944,8 +957,9 @@ fi
 running_time Assembly
 echo "[`tcmd`] Done!"
 t2=$(date +%s)
+tot_run_time=`covert_time $(( $t2 - $t0 ))`
 echo
-echo "Total running time is $(( $t2 - $t0 )) s, thank you for using RADassembler."
+echo "Total running time is $tot_run_time, thank you for using RADassembler."
 echo
 }
 

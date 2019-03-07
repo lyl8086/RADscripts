@@ -7,6 +7,24 @@ v=`ustacks --version 2>&1 |head -1|awk '{print $2}'`
 s=0
 f=0
 t=0
+# check data
+if [ ! -f "samples/PopMap" ];then
+    echo -n "Downloading samples..."
+    wget -qO samples.tar.gz 'https://api.onedrive.com/v1.0/shares/s!AkdXP6pcDOrskEtUVfplYmCaXTXq/root/content'
+    tar -xf samples.tar.gz
+    echo "done."
+fi
+
+for i in `cat samples/PopMap|cut -f1`;do
+    if [ ! -f "samples/read1/${i}.fq.gz" ] || [ ! -f "samples/read2/${i}_2.fq.gz" ];then
+        echo -n "Downloading samples..."
+        wget -qO samples.tar.gz 'https://api.onedrive.com/v1.0/shares/s!AkdXP6pcDOrskEtUVfplYmCaXTXq/root/content'
+        tar -xf samples.tar.gz
+        echo "done."
+        break
+    fi
+done
+
 # test choose M
 let t++
 echo Testing functions for `RADassembler -v`... | tee tmp_out/logs 
